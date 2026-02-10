@@ -5,8 +5,5 @@ __pycache__/
 .chroma_news
 .custom_tickers.json
 .decisions.json
-.pids/
-.logs/
-.ticker_processes.json
 .DS_Store
 .actions_today.json

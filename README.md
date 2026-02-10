@@ -1,108 +1,174 @@
-# Trader Agent
+# TraderAI
 
-LLM-powered stock trading agent built with **LangGraph**, **LangChain**, and **ChromaDB**.  
-Now includes a **Streamlit dashboard** for real-time monitoring and on-demand analysis.
+**LLM-powered stock trading agent** with real-time analysis and Discord notifications.
 
-## How it works
+Built with **LangGraph**, **LangChain**, **ChromaDB**, **OpenAI**, and a **Streamlit dashboard**.
+
+## 🎯 How It Works
 
 ```
-Every 5 minutes:
-  1. RSS feeds → fetch latest news → ingest into News Vector DB
-  2. yfinance  → fetch OHLCV data  → ingest into Chart Vector DB
-  3. LangGraph pipeline runs for each ticker:
+Background Loop (every 5 minutes per ticker):
+  1. Fetch latest news (Tavily API + RSS fallback)
+  2. Fetch OHLCV price data (yfinance)
+  3. Ingest into vector databases (ChromaDB)
+  4. Run LangGraph pipeline:
        RETRIEVE NEWS → RETRIEVE CHART → ANALYZE → EXECUTE DECISION
-  4. Discord webhook sends a notification with the decision + reasoning
+  5. Send Discord notification if action taken
+  6. Track daily action budget (max 5 per stock)
 ```
 
-### LangGraph Pipeline
+### Decision Flow
 
-| Node | What it does |
-|---|---|
-| **retrieve_news** | Queries the news Chroma collection for relevant articles |
-| **retrieve_chart** | Queries the chart Chroma collection for recent price data |
-| **analyze** | Runs 3 LLM chains: news sentiment → chart technicals → trading decision |
-| **execute_decision** | Enforces the 5-action daily budget, sends Discord alert |
+| Stage | What Happens |
+|-------|--------------|
+| **Retrieve News** | Query news vector DB for ticker-relevant articles |
+| **Retrieve Chart** | Query chart vector DB for recent price candles |
+| **Analyze** | Run 3 LLM chains in parallel (timeout 30s each): |
+| | • **News Sentiment** — summarize headline sentiment |
+| | • **Chart Technicals** — identify trends & support/resistance |
+| | • **Trading Decision** — output BUY / SELL / HOLD with reasoning |
+| **Execute** | Check daily action budget → execute or downgrade to HOLD → notify Discord |
 
-### Decision Rules
-- The LLM outputs one of: **BUY**, **SELL**, or **HOLD**
-- **HOLD** does **not** count towards the daily action limit
-- Max **5 actions** (buy/sell) per day (configurable)
-- If the budget is exhausted, buy/sell is downgraded to hold
+### Budget Rules
+- **HOLD** = free (doesn't count against budget)
+- **BUY / SELL** = 1 action each (max 5 per stock per day)
+- Budget resets at **midnight UTC**
+- If exhausted, trades downgrade to HOLD
 
-## Setup
+## 📋 Setup
 
-### 1. Environment variables
+### 1. Environment Variables
 
-Create a `.env` file in the project root:
+Create `.env` in project root:
 
 ```env
+# Required
 OPENAI_API_KEY=sk-...
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+TAVILY_API_KEY=tvly-...           # News search (Tavily.com)
 
-# Optional overrides
-TICKERS=AAPL,MSFT,GOOGL
+# Optional
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+TICKERS=AAPL,MSFT,NVDA
 MAX_ACTIONS_PER_DAY=5
 RUN_INTERVAL_SECONDS=300
 LLM_MODEL=gpt-4o
 ```
 
-### 2. Install dependencies
+### 2. Install & Run
 
 ```bash
-pip install -e .
-# or
-uv pip install -e .
-```
+# Install dependencies
+uv sync
 
-### 3. Run the agent (CLI scheduler)
-
-```bash
-python -m trader_agent.main
-# or if installed via pip:
-trader-agent
-```
-
-### 4. Run the Streamlit dashboard
-
-```bash
+# Start Streamlit dashboard (has built-in Start/Stop buttons per ticker)
 streamlit run trader_agent/dashboard/app.py
+
+# Or run CLI scheduler in parallel (optional, for when dashboard is closed)
+python -m trader_agent.main
 ```
 
-The dashboard provides:
-- **Market Overview** — live price cards for all tracked tickers
-- **On-demand Analysis** — trigger the full LangGraph pipeline from the UI
-- **News Feed** — browse fetched RSS articles per ticker
-- **Interactive Charts** — candlestick & line charts with configurable timeframes
-- **Pipeline Viewer** — visualise the LangGraph workflow and decision rules
+## 🎮 Streamlit Dashboard
 
-## Project Structure
+**Tabs:**
+
+| Tab | Purpose |
+|-----|---------|
+| **Stocks** | Real-time monitoring with Start/Stop buttons. Timer shows when next analysis runs. |
+| **Dashboard** | Market overview & recent decision history. |
+| **Analysis** | On-demand single-ticker analysis. Run the full pipeline manually. |
+| **News Feed** | Browse fetched articles for selected ticker. |
+| **Charts** | Interactive candlestick charts with configurable periods & intervals. |
+| **Pipeline** | Visualize the LangGraph workflow and decision rules. |
+
+**Features:**
+- ✅ Add/remove tickers via Yahoo Finance search
+- ✅ Real-time price cards
+- ✅ 1-second countdown timer (Streamlit Fragments)
+- ✅ Daily action budget tracker
+- ✅ Decision history with full reasoning
+- ✅ OpenAI + Discord status indicators
+
+## 📁 Project Structure
 
 ```
 trader_agent/
-├── __init__.py
-├── config.py                  # All tunables & env var loading
-├── main.py                    # CLI scheduler loop entry point
+├── config.py                    # All configuration & env vars
+├── main.py                      # CLI scheduler entry point
 │
-├── core/                      # Data fetching, ingestion & notifications
-│   ├── rss_fetcher.py         #   Pulls news via RSS (feedparser)
-│   ├── chart_fetcher.py       #   Pulls OHLCV via yfinance
-│   ├── ingestion.py           #   Two Chroma vector stores (news + chart)
-│   └── discord_notifier.py    #   Sends rich embeds to Discord webhook
+├── core/
+│   ├── rss_fetcher.py           # Tavily + RSS news fetching
+│   ├── chart_fetcher.py         # yfinance OHLCV fetching
+│   ├── ingestion.py             # ChromaDB vector store (news + chart)
+│   └── discord_notifier.py      # Discord webhook notifications
 │
-├── graph/                     # LangGraph trading pipeline
-│   ├── consts.py              #   Node name constants
-│   ├── state.py               #   GraphState TypedDict
-│   ├── graph.py               #   LangGraph workflow definition
+├── graph/
+│   ├── state.py                 # GraphState TypedDict
+│   ├── consts.py                # Node name constants
+│   ├── graph.py                 # LangGraph workflow
 │   ├── chains/
-│   │   ├── news_analyzer.py   #     News sentiment chain
-│   │   ├── chart_analyzer.py  #     Technical analysis chain
-│   │   └── trading_decision.py#     BUY/SELL/HOLD structured output chain
+│   │   ├── news_analyzer.py
+│   │   ├── chart_analyzer.py
+│   │   └── trading_decision.py
 │   └── nodes/
-│       ├── retrieve_news.py   #     Queries news vector store
-│       ├── retrieve_chart.py  #     Queries chart vector store
-│       ├── analyze.py         #     Runs all 3 chains
-│       └── execute_decision.py#     Budget check + Discord notify
+│       ├── retrieve_news.py
+│       ├── retrieve_chart.py
+│       ├── analyze.py
+│       └── execute_decision.py
 │
-└── dashboard/                 # Streamlit web UI
-    └── app.py                 #   Interactive dashboard
+└── dashboard/
+    ├── app.py                   # Main Streamlit app
+    ├── helpers.py               # Threading loops + shared helpers
+    └── tabs/
+        ├── tab_stocks.py        # Monitoring & control
+        ├── tab_dashboard.py     # Market overview
+        ├── tab_analysis.py      # On-demand analysis
+        ├── tab_news.py          # News feed
+        ├── tab_charts.py        # Interactive charts
+        └── tab_pipeline.py      # Workflow visualization
 ```
+
+## 🔄 Threading & Persistence
+
+- **Background loops:** Module-level threading (survives Streamlit reruns)
+- **Session persistence:** `.actions_today.json` tracks daily budget across sessions
+- **Decision history:** `.decisions.json` stores all past trades
+- **Custom tickers:** `.custom_tickers.json` persists user-added symbols
+
+## 📊 Data Management
+
+**News Vector Store:**
+- Collection: `news-store`
+- Source: Tavily API (primary) + RSS feeds (fallback)
+- Content: Title + full article body
+- Batch ingestion: 10 docs/batch to avoid memory issues
+
+**Chart Vector Store:**
+- Collection: `chart-store`
+- Source: yfinance (5d history, 5m candles)
+- Content: OHLCV + summary stats
+- Downsampling: max 50 candles per ticker
+
+## ⚙️ Configuration
+
+All settings live in `config.py` and can be overridden via `.env`:
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `LLM_MODEL` | `gpt-4o` | OpenAI model |
+| `LLM_TEMPERATURE` | `0.0` | Deterministic decisions |
+| `RUN_INTERVAL_SECONDS` | `300` | 5-minute loop interval |
+| `MAX_ACTIONS_PER_DAY` | `5` | Budget per stock |
+| `CHART_PERIOD` | `5d` | yfinance history period |
+| `CHART_INTERVAL` | `5m` | yfinance candle interval |
+
+## 🚀 Deployment Tips
+
+1. **Use threading, not subprocesses** — dashboard loop continues across page refreshes
+2. **Set `OPENAI_API_KEY` & `TAVILY_API_KEY`** — required for LLM & news fetching
+3. **Discord webhook (optional)** — trades are logged but won't send if not configured
+4. **Run Streamlit in multi-user mode** if accessing from multiple devices
+5. **Monitor logs** — ticker loops print to stdout with `[LOOP]` prefix
+
+## 📝 License
+
+MIT
