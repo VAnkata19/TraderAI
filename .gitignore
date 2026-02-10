@@ -1,0 +1,10 @@
+.env
+.venv
+__pycache__/
+.chroma_chart
+.chroma_news
+.custom_tickers.json
+.decisions.json
+.pids/
+.logs/
+.ticker_processes.json
