@@ -75,7 +75,7 @@ def analyze(state: GraphState) -> Dict[str, Any]:
                         "max_actions": max_actions,
                     }
                 )
-                result: TradingDecision = future.result(timeout=LLM_TIMEOUT)
+                result: TradingDecision = future.result(timeout=LLM_TIMEOUT)  # type: ignore[assignment]
             print(f"[ANALYZE] Decision: {result.decision} (confidence: {result.confidence:.2f})")
         except FuturesTimeoutError:
             print(f"[ANALYZE] ⚠️  Trading decision timed out (>{LLM_TIMEOUT}s), defaulting to HOLD")

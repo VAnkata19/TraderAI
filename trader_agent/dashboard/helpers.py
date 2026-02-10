@@ -216,8 +216,6 @@ def init_session_state() -> None:
         st.session_state.actions_today = load_actions_today()
     if "current_day" not in st.session_state:
         st.session_state.current_day = datetime.now(timezone.utc).date()
-    if "scheduler_process" not in st.session_state:
-        st.session_state.scheduler_process = None
     if "custom_tickers" not in st.session_state:
         st.session_state.custom_tickers = load_custom_tickers()
 
@@ -339,7 +337,7 @@ def create_candlestick_chart(df: pd.DataFrame, ticker: str) -> go.Figure:
 
 
 # ── Module-level thread management (outside Streamlit session state) ────────
-_analysis_threads: dict[str, threading.Thread] = {}
+_analysis_threads: dict[str, threading.Thread | None] = {}
 _analysis_stop_flags: dict[str, threading.Event] = {}
 _last_run_time: dict[str, datetime] = {}
 

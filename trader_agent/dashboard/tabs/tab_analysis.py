@@ -2,6 +2,7 @@
 Tab: Analysis — single-ticker on-demand analysis.
 """
 
+import traceback
 from datetime import datetime, timezone
 
 import streamlit as st
@@ -131,7 +132,6 @@ def render(selected_ticker: str) -> None:
                         st.write("   ✓ Pipeline complete")
                     except Exception as e:
                         st.error(f"❌ Pipeline failed: {e}")
-                        import traceback
                         st.error(traceback.format_exc())
                         status.update(label="Pipeline failed", state="error")
                         return
@@ -145,7 +145,6 @@ def render(selected_ticker: str) -> None:
                         label=f"Analysis failed: {e}", state="error"
                     )
                     st.error(f"❌ Unexpected error: {e}")
-                    import traceback
                     st.error(traceback.format_exc())
                     return
 

@@ -16,9 +16,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import streamlit as st
-from dotenv import load_dotenv
-
-load_dotenv()
 
 from trader_agent.config import (
     TICKERS,

@@ -4,10 +4,6 @@ LangGraph workflow for the stock trading agent.
 Pipeline: RETRIEVE_NEWS → RETRIEVE_CHART → ANALYZE → EXECUTE_DECISION
 """
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from langgraph.graph import END, StateGraph
 
 from .consts import (

@@ -11,10 +11,6 @@ Main entry point for the Trading Agent.
 import time
 from datetime import datetime, timezone
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from trader_agent.config import (
     MAX_ACTIONS_PER_DAY,
     RUN_INTERVAL_SECONDS,
