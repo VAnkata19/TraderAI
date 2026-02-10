@@ -8,3 +8,5 @@ __pycache__/
 .pids/
 .logs/
 .ticker_processes.json
+.DS_Store
+.actions_today.json
