@@ -29,6 +29,34 @@ Background Loop (every 5 minutes per ticker):
 | | • **Trading Decision** — output BUY / SELL / HOLD with reasoning |
 | **Execute** | Check daily action budget → execute or downgrade to HOLD → notify Discord |
 
+### System Architecture
+
+```mermaid
+flowchart TD
+    subgraph Data Ingestion ["Every 5 minutes"]
+        RSS["RSS Feeds<br/>(feedparser)"] --> NI["Ingest News"]
+        YF["yfinance<br/>OHLCV data"] --> CI["Ingest Chart"]
+        NI --> NVS[("News Vector DB<br/>(Chroma)")]
+        CI --> CVS[("Chart Vector DB<br/>(Chroma)")]
+    end
+
+    subgraph LangGraph Pipeline ["For each ticker"]
+        RN["retrieve_news"] --> RC["retrieve_chart"]
+        RC --> AN["analyze"]
+        AN --> ED["execute_decision"]
+
+        NVS -.-> RN
+        CVS -.-> RC
+
+        AN -->|Chain 1| NS["News Sentiment<br/>Chain"]
+        AN -->|Chain 2| CS["Chart Analysis<br/>Chain"]
+        AN -->|Chain 3| TD["Trading Decision<br/>Chain<br/>(BUY/SELL/HOLD)"]
+    end
+
+    ED -->|"budget OK?"| DC["Discord Webhook<br/>📢 Notification"]
+    ED -->|"budget exhausted"| HOLD["Downgrade to HOLD"]
+```
+
 ### Budget Rules
 - **HOLD** = free (doesn't count against budget)
 - **BUY / SELL** = 1 action each (max 5 per stock per day)
