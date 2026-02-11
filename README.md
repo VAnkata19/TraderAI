@@ -19,7 +19,7 @@ Background Loop (every 5 minutes per ticker):
   2. Fetch OHLCV price data (yfinance)
   3. Ingest into vector databases (ChromaDB)
   4. Run LangGraph pipeline:
-       RETRIEVE NEWS → RETRIEVE CHART → ANALYZE → EXECUTE DECISION
+       RETRIEVE NEWS → RETRIEVE CHART → RETRIEVE PORTFOLIO → ANALYZE → EXECUTE DECISION
   5. Send Discord notification if action taken
   6. Track daily action budget (max 5 per stock)
 ```
@@ -30,11 +30,12 @@ Background Loop (every 5 minutes per ticker):
 |-------|--------------|
 | **Retrieve News** | Query news vector DB for ticker-relevant articles |
 | **Retrieve Chart** | Query chart vector DB for recent price candles |
+| **Retrieve Portfolio** | Get live account data, positions & current price from Alpaca |
 | **Analyze** | Run 3 LLM chains in parallel (timeout 30s each): |
 | | • **News Sentiment** — summarize headline sentiment |
 | | • **Chart Technicals** — identify trends & support/resistance |
-| | • **Trading Decision** — output BUY / SELL / HOLD with reasoning |
-| **Execute** | Check daily action budget → execute or downgrade to HOLD → notify Discord |
+| | • **Trading Decision** — BUY / SELL / HOLD considering portfolio context |
+| **Execute** | Place actual market orders via Alpaca → check daily budget → notify Discord |
 
 ### System Architecture
 
@@ -49,7 +50,8 @@ flowchart TD
 
     subgraph LangGraph Pipeline ["For each ticker"]
         RN["retrieve_news"] --> RC["retrieve_chart"]
-        RC --> AN["analyze"]
+        RC --> RP["retrieve_portfolio"]
+        RP --> AN["analyze"]
         AN --> ED["execute_decision"]
 
         NVS -.-> RN
@@ -60,7 +62,14 @@ flowchart TD
         AN -->|Chain 3| TD["Trading Decision<br/>Chain<br/>(BUY/SELL/HOLD)"]
     end
 
-    ED -->|"budget OK?"| DC["Discord Webhook<br/>📢 Notification"]
+    subgraph Broker ["Alpaca Paper Trading"]
+        API["Alpaca REST API<br/>(Market Orders)"]
+        POS["Account &<br/>Positions"]
+    end
+
+    RP -.->|get account,<br/>positions,<br/>price| POS
+    ED -->|place order| API
+    ED -->|"no action"| DC["Discord Webhook<br/>📢 Notification"]
     ED -->|"budget exhausted"| HOLD["Downgrade to HOLD"]
 ```
 
@@ -79,9 +88,13 @@ Create `.env` in project root:
 ```env
 # Required
 OPENAI_API_KEY=sk-...
-TAVILY_API_KEY=tvly-...           # News search (Tavily.com)
+TAVILY_API_KEY=tvly-...                    # News search (Tavily.com)
+ALPACA_API_KEY=your_alpaca_key             # Paper trading
+ALPACA_SECRET_KEY=your_alpaca_secret       # Paper trading
 
 # Optional
+ALPACA_BASE_URL=https://paper-api.alpaca.markets
+ALPACA_ORDER_QTY=1                         # Shares per trade
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 TICKERS=AAPL,MSFT,NVDA
 MAX_ACTIONS_PER_DAY=5
