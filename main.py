@@ -8,6 +8,14 @@ Main entry point for the Trading Agent.
 • Tracks daily action budget (resets at midnight UTC).
 """
 
+import sys
+from pathlib import Path
+
+# Ensure the package root is importable when launched as a script
+_ROOT = Path(__file__).resolve().parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import time
 from datetime import datetime, timezone
 

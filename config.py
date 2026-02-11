@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Paths ────────────────────────────────────────────────────────────────────
-BASE_DIR = Path(__file__).parent.parent          # project root
+BASE_DIR = Path(__file__).parent          # project root
 CHROMA_NEWS_DIR = BASE_DIR / ".chroma_news"
 CHROMA_CHART_DIR = BASE_DIR / ".chroma_chart"
 

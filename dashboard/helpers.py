@@ -17,7 +17,7 @@ import yfinance as yf
 from plotly.subplots import make_subplots
 
 # ── Project root ─────────────────────────────────────────────────────────────
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 
 from config import (
     CHART_INTERVAL,
