@@ -4,6 +4,12 @@
 
 Built with **LangGraph**, **LangChain**, **ChromaDB**, **OpenAI**, and a **Streamlit dashboard**.
 
+## 📹 Demo Video
+
+Check out how TraderAI works in action:
+
+[![TraderAI Demo](https://img.youtube.com/vi/xoYCUWpobYY/0.jpg)](https://youtu.be/xoYCUWpobYY)
+
 ## 🎯 How It Works
 
 ```
