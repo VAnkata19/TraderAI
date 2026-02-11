@@ -8,7 +8,8 @@ Built with **LangGraph**, **LangChain**, **ChromaDB**, **OpenAI**, and a **Strea
 
 Check out how TraderAI works in action:
 
-[![TraderAI Demo](https://img.youtube.com/vi/xoYCUWpobYY/0.jpg)](https://youtu.be/xoYCUWpobYY)
+[![TraderAI Demo]](https://github.com/user-attachments/assets/33544a91-c85f-4746-9c5c-1d797dff7172)
+
 
 ## 🎯 How It Works
 
