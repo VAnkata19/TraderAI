@@ -16,6 +16,7 @@ class GraphState(TypedDict):
         chart_summary:      LLM-generated technical summary of the chart data.
         portfolio_context:  Live Alpaca account, position & price data for the ticker.
         decision:           The trading decision: "buy", "sell", or "hold".
+        quantity:           Number of shares the LLM chose to buy/sell (0 for hold).
         reasoning:          The LLM's explanation for its decision.
         actions_today:      How many buy/sell actions have been executed today.
         max_actions:        Maximum allowed actions per day.
@@ -30,6 +31,7 @@ class GraphState(TypedDict):
     chart_summary: str
     portfolio_context: str
     decision: str          # "buy" | "sell" | "hold"
+    quantity: int
     reasoning: str
     actions_today: int
     max_actions: int

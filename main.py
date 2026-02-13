@@ -27,6 +27,7 @@ from config import (
 from core.rss_fetcher import fetch_news_for_ticker
 from core.chart_fetcher import fetch_chart_for_ticker
 from core.ingestion import ingest_news, ingest_chart
+from dashboard.helpers import load_actions_today, save_actions_today
 from graph.graph import app
 
 
@@ -47,8 +48,9 @@ def run_cycle(tickers: list[str], actions_today: dict[str, int]) -> dict[str, in
     # ── 2. Run the trading graph for each ticker ─────────────────────────
     for ticker in tickers:
         ticker_actions = actions_today.get(ticker, 0)
+        budget_str = "unlimited" if MAX_ACTIONS_PER_DAY == -1 else str(MAX_ACTIONS_PER_DAY)
         print(f"\n{'='*60}")
-        print(f"  Processing {ticker}  |  Actions today: {ticker_actions}/{MAX_ACTIONS_PER_DAY}")
+        print(f"  Processing {ticker}  |  Actions today: {ticker_actions}/{budget_str}")
         print(f"{'='*60}")
 
         result = app.invoke(
@@ -60,6 +62,7 @@ def run_cycle(tickers: list[str], actions_today: dict[str, int]) -> dict[str, in
                 "chart_summary": "",
                 "portfolio_context": "",
                 "decision": "",
+                "quantity": 0,
                 "reasoning": "",
                 "actions_today": ticker_actions,
                 "max_actions": MAX_ACTIONS_PER_DAY,
@@ -80,26 +83,23 @@ def run_cycle(tickers: list[str], actions_today: dict[str, int]) -> dict[str, in
 def main() -> None:
     print("🚀 Trading Agent started")
     print(f"   Tickers: {', '.join(TICKERS)}")
-    print(f"   Max actions/day/stock: {MAX_ACTIONS_PER_DAY}")
+    print(f"   Max actions/day/stock: {'unlimited' if MAX_ACTIONS_PER_DAY == -1 else MAX_ACTIONS_PER_DAY}")
     print(f"   Run interval: {RUN_INTERVAL_SECONDS}s")
     print()
 
-    actions_today: dict[str, int] = {}   # per-ticker action counters
-    current_day = datetime.now(timezone.utc).date()
+    actions_today = load_actions_today()  # shared with dashboard via disk
 
     while True:
         now = datetime.now(timezone.utc)
 
-        # Reset all per-ticker counters at midnight UTC
-        if now.date() != current_day:
-            print("\n🔄 New day – resetting action counters")
-            actions_today = {}
-            current_day = now.date()
+        # Reload from disk each cycle — load_actions_today() auto-resets on new day
+        actions_today = load_actions_today()
 
         print(f"\n⏰ Cycle start: {now.isoformat()}")
 
         try:
             actions_today = run_cycle(TICKERS, actions_today)
+            save_actions_today(actions_today)
         except Exception as exc:
             print(f"❌ Cycle failed: {exc}")
 

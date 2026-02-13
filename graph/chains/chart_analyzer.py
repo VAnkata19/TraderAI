@@ -11,17 +11,17 @@ from config import LLM_MODEL, LLM_TEMPERATURE
 
 llm = ChatOpenAI(model=LLM_MODEL, temperature=LLM_TEMPERATURE)
 
-system = """You are a professional technical analyst with deep experience reading price-action data.
+system = """You are a technical analyst producing actionable chart reports for a trading bot.
 You will be given recent OHLCV (Open, High, Low, Close, Volume) candle data for a stock.
 
-Your job:
-1. Identify the current short-term trend (uptrend / downtrend / sideways).
-2. Note significant support and resistance levels visible in the data.
-3. Comment on volume dynamics (increasing, decreasing, unusual spikes).
-4. Provide a brief technical outlook (bullish / bearish / neutral).
-5. Be concise — the output feeds into a trading decision model.
+Your report MUST include:
+1. **Trend**: One word — Uptrend, Downtrend, or Sideways. Then one sentence on why (e.g. higher highs/lows, breakdown below support).
+2. **Key Levels**: The nearest support and resistance prices visible in the data.
+3. **Volume**: Is volume confirming the trend? Note any unusual spikes or divergences.
+4. **Momentum**: Is the move accelerating or fading? Look at the size and direction of recent candles vs earlier ones.
+5. **Trading Signal**: One sentence — what the chart says to do right now (e.g. "Price bouncing off support with rising volume — favors a buy" or "Breakdown below support on high volume — favors a sell").
 
-Respond with a structured technical report."""
+Keep it concise. No filler. This feeds directly into an automated trading decision."""
 
 chart_prompt = ChatPromptTemplate.from_messages(
     [

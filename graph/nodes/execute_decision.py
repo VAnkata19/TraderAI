@@ -7,7 +7,6 @@ Node: Execute the trading decision.
 
 from typing import Any, Dict
 
-from config import ALPACA_ORDER_QTY
 from graph.state import GraphState
 from core.discord_notifier import send_discord_message
 from core.alpaca_broker import (
@@ -20,7 +19,7 @@ from core.alpaca_broker import (
 def execute_decision(state: GraphState) -> Dict[str, Any]:
     print("---EXECUTE DECISION---")
     ticker = state["ticker"]
-    decision = state["decision"]
+    decision = state["decision"].lower().strip()
     reasoning = state["reasoning"]
     actions_today = state["actions_today"]
     max_actions = state["max_actions"]
@@ -30,8 +29,8 @@ def execute_decision(state: GraphState) -> Dict[str, Any]:
         print(f"[EXECUTE] {ticker}: HOLD – no action taken")
         return {"executed": False, "order_result": ""}
 
-    # Buy / Sell: check daily budget
-    if actions_today >= max_actions:
+    # Buy / Sell: check daily budget (-1 means unlimited)
+    if max_actions != -1 and actions_today >= max_actions:
         msg = (
             f"Action budget exhausted ({actions_today}/{max_actions}). "
             f"Wanted to {decision.upper()} but converting to HOLD."
@@ -39,16 +38,20 @@ def execute_decision(state: GraphState) -> Dict[str, Any]:
         print(f"[EXECUTE] {ticker}: {msg}")
         return {"executed": False, "decision": "hold", "reasoning": msg, "order_result": ""}
 
-    # For SELL: verify we actually hold a position
+    # Use the quantity chosen by the LLM (minimum 1 for buy/sell)
+    qty = max(state.get("quantity", 1), 1)
+
+    # For SELL: verify we actually hold a position and cap qty to held shares
     if decision == "sell":
         pos = get_position(ticker)
         if not pos or float(pos.get("qty", 0)) <= 0:
             msg = f"Cannot SELL {ticker} – no open position. Converting to HOLD."
             print(f"[EXECUTE] {ticker}: {msg}")
             return {"executed": False, "decision": "hold", "reasoning": msg, "order_result": ""}
-
-    # ── Place the order on Alpaca ────────────────────────────────────────
-    qty = ALPACA_ORDER_QTY
+        held = int(float(pos["qty"]))
+        if qty > held:
+            print(f"[EXECUTE] {ticker}: LLM requested {qty} shares but only hold {held} — capping")
+            qty = held
     order_summary = ""
     try:
         price_before = get_current_price(ticker)

@@ -3,7 +3,7 @@
 __pycache__/
 .chroma_chart
 .chroma_news
-.custom_tickers.json
-.decisions.json
 .DS_Store
-.actions_today.json
+data/
+.pytest_cache/
+CLAUDE.md

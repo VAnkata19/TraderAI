@@ -150,6 +150,65 @@ def submit_market_order(
     return resp.json()
 
 
+# ── Order & activity history ─────────────────────────────────────────────────
+
+def get_orders(
+    status: str = "all",
+    limit: int = 100,
+    direction: str = "desc",
+    symbols: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """
+    List recent orders from Alpaca.
+
+    Parameters
+    ----------
+    status    : "open", "closed", or "all"
+    limit     : max results (up to 500)
+    direction : "asc" or "desc"
+    symbols   : comma-separated ticker filter, e.g. "AAPL,MSFT"
+    """
+    params: Dict[str, Any] = {
+        "status": status,
+        "limit": limit,
+        "direction": direction,
+    }
+    if symbols:
+        params["symbols"] = symbols
+    resp = requests.get(
+        _trading_url("/v2/orders"),
+        headers=_HEADERS,
+        params=params,
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_fill_activity(
+    limit: int = 100,
+    direction: str = "desc",
+) -> List[Dict[str, Any]]:
+    """
+    Get recent FILL activities from Alpaca account activities.
+
+    Returns list of fill dicts with keys like 'symbol', 'side', 'qty',
+    'price', 'transaction_time', 'order_id', etc.
+    """
+    params: Dict[str, Any] = {
+        "direction": direction,
+        "page_size": limit,
+    }
+    resp = requests.get(
+        _trading_url("/v2/account/activities/FILL"),
+        headers=_HEADERS,
+        params=params,
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
 # ── Convenience: build a context string for the LLM ─────────────────────────
 
 def build_portfolio_context(ticker: str) -> str:

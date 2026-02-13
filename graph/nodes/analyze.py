@@ -84,6 +84,7 @@ def analyze(state: GraphState) -> Dict[str, Any]:
             result = TradingDecision(
                 decision="hold",
                 reasoning="Unable to reach decision due to timeout. Defaulting to HOLD.",
+                quantity=0,
                 confidence=0.3
             )
         except Exception as e:
@@ -91,6 +92,7 @@ def analyze(state: GraphState) -> Dict[str, Any]:
             result = TradingDecision(
                 decision="hold",
                 reasoning="Unable to reach decision due to error. Defaulting to HOLD.",
+                quantity=0,
                 confidence=0.3
             )
 
@@ -98,6 +100,7 @@ def analyze(state: GraphState) -> Dict[str, Any]:
             "news_summary": news_summary,
             "chart_summary": chart_summary,
             "decision": result.decision,
+            "quantity": result.quantity,
             "reasoning": result.reasoning,
         }
     except Exception as e:
@@ -107,5 +110,6 @@ def analyze(state: GraphState) -> Dict[str, Any]:
             "news_summary": "Error in analysis",
             "chart_summary": "Error in analysis",
             "decision": "hold",
+            "quantity": 0,
             "reasoning": "Analysis failed, defaulting to HOLD",
         }

@@ -1,0 +1,90 @@
+/* TraderAI Dashboard Styles */
+
+/* Hide the "hidden" navigation section in the sidebar */
+div[data-testid="stSidebarNav"] span:not(:empty) {
+    /* Only needed if section headers appear — handled below */
+}
+section[data-testid="stSidebar"] li a[href*="analysis"],
+section[data-testid="stSidebar"] li a[href*="/news"],
+section[data-testid="stSidebar"] li a[href*="/charts"] {
+    display: none !important;
+}
+
+div[data-testid="stMetric"] {
+    background-color: rgba(30, 30, 46, 0.6);
+    border: 1px solid rgba(49, 50, 68, 0.6);
+    padding: 12px 16px;
+    border-radius: 8px;
+}
+
+.decision-buy  { 
+    color: #2ecc71; 
+    font-weight: 700; 
+    font-size: 1.5rem; 
+}
+
+.decision-sell { 
+    color: #e74c3c; 
+    font-weight: 700; 
+    font-size: 1.5rem; 
+}
+
+.decision-hold { 
+    color: #f39c12; 
+    font-weight: 700; 
+    font-size: 1.5rem; 
+}
+
+/* Decision badges */
+.decision-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.decision-badge-buy {
+    background-color: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.decision-badge-sell {
+    background-color: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.decision-badge-hold {
+    background-color: rgba(243, 156, 18, 0.15);
+    color: #f39c12;
+    border: 1px solid rgba(243, 156, 18, 0.3);
+}
+
+.decision-badge .arrow {
+    margin-right: 4px;
+    font-size: 10px;
+}
+
+.pipeline-step {
+    padding: 14px 18px;
+    border-radius: 8px;
+    border-left: 4px solid #3498db;
+    margin-bottom: 12px;
+}
+
+/* Status checkboxes styling - override disabled greyed out */
+input[type="checkbox"]:disabled {
+    opacity: 1 !important;
+}
+
+input[type="checkbox"]:disabled + label {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+/* Stock card buttons — keep uniform sizing */

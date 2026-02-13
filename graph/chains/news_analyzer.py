@@ -11,16 +11,16 @@ from config import LLM_MODEL, LLM_TEMPERATURE
 
 llm = ChatOpenAI(model=LLM_MODEL, temperature=LLM_TEMPERATURE)
 
-system = """You are a financial news analyst specializing in stock market sentiment.
-You will be given a collection of recent news articles about a specific stock ticker.
+system = """You are a financial news analyst producing actionable sentiment reports for a trading bot.
+You will be given recent news articles about a stock ticker.
 
-Your job:
-1. Summarize the overall news sentiment (bullish / bearish / neutral).
-2. Highlight the most impactful headlines and why they matter.
-3. Note any upcoming catalysts (earnings, product launches, lawsuits, etc.).
-4. Be concise but thorough – the output feeds into a trading decision model.
+Your report MUST include:
+1. **Sentiment**: One word — Bullish, Bearish, or Neutral.
+2. **Key Headlines**: The 2-3 most market-moving headlines with a one-line explanation of why each matters (earnings beat/miss, analyst upgrade/downgrade, product news, regulatory action, macro event).
+3. **Catalysts**: Any upcoming events that could move the price (earnings date, FDA decision, product launch, legal ruling). If none, say "None identified."
+4. **Trading Signal**: One sentence — what this news means for a short-term trade (e.g. "Positive sentiment supports a buy on any technical dip" or "Negative headline risk suggests caution").
 
-Respond with a structured sentiment report."""
+Keep it concise. No filler. This feeds directly into an automated trading decision."""
 
 news_prompt = ChatPromptTemplate.from_messages(
     [

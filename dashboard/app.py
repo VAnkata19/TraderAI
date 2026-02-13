@@ -1,10 +1,10 @@
 """
 TraderAI — Streamlit Dashboard
 ===============================
-Slim coordinator that wires the sidebar, tabs, and shared state.
+Multi-page app coordinator: sidebar, CSS, session state, and navigation.
 
 Run with:
-    streamlit run trader_agent/dashboard/app.py
+    streamlit run dashboard/app.py
 """
 
 import sys
@@ -38,15 +38,6 @@ from dashboard.helpers import (
     estimate_cost_per_day,
 )
 
-# Tab modules
-from dashboard.tabs import (
-    tab_stocks,
-    tab_dashboard,
-    tab_analysis,
-    tab_news,
-    tab_charts,
-    tab_pipeline,
-)
 
 # ── Page Config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -57,41 +48,43 @@ st.set_page_config(
 )
 
 # ── Custom CSS ───────────────────────────────────────────────────────────────
-st.markdown(
-    """
-<style>
-    div[data-testid="stMetric"] {
-        background-color: rgba(30, 30, 46, 0.6);
-        border: 1px solid rgba(49, 50, 68, 0.6);
-        padding: 12px 16px;
-        border-radius: 8px;
-    }
-    .decision-buy  { color: #2ecc71; font-weight: 700; font-size: 1.5rem; }
-    .decision-sell { color: #e74c3c; font-weight: 700; font-size: 1.5rem; }
-    .decision-hold { color: #f39c12; font-weight: 700; font-size: 1.5rem; }
-    .pipeline-step {
-        padding: 14px 18px;
-        border-radius: 8px;
-        border-left: 4px solid #3498db;
-        margin-bottom: 12px;
-    }
-    /* Status checkboxes styling - override disabled greyed out */
-    input[type="checkbox"]:disabled {
-        opacity: 1 !important;
-    }
-    input[type="checkbox"]:disabled + label {
-        color: #ffffff !important;
-        opacity: 1 !important;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
-)
+def load_css():
+    """Load external CSS file"""
+    css_file = Path(__file__).parent / "style.css"
+    if css_file.exists():
+        with open(css_file) as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    else:
+        st.warning("CSS file not found: style.css")
+
+load_css()
 
 # ── Session State ────────────────────────────────────────────────────────────
 init_session_state()
 
 all_tickers = get_all_tickers()
+
+# ── Navigation ───────────────────────────────────────────────────────────────
+_TABS_DIR = Path(__file__).resolve().parent / "tabs"
+
+_analysis_page = st.Page(str(_TABS_DIR / "analysis.py"), title="Analysis", url_path="analysis")
+_news_page = st.Page(str(_TABS_DIR / "news.py"), title="News Feed", url_path="news")
+_charts_page = st.Page(str(_TABS_DIR / "charts.py"), title="Charts", url_path="charts")
+
+# Store page refs for switch_page (these pages are hidden from sidebar nav)
+st.session_state._page_analysis = _analysis_page
+st.session_state._page_news = _news_page
+st.session_state._page_charts = _charts_page
+
+pages = [
+    st.Page(str(_TABS_DIR / "dashboard.py"), title="Dashboard", url_path="dashboard", default=True),
+    st.Page(str(_TABS_DIR / "stocks.py"), title="Stocks", url_path="stocks"),
+    st.Page(str(_TABS_DIR / "transactions.py"), title="Transactions", url_path="transactions"),
+    st.Page(str(_TABS_DIR / "pipeline.py"), title="Pipeline", url_path="pipeline"),
+    _analysis_page,
+    _news_page,
+    _charts_page,
+]
 
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -99,82 +92,9 @@ with st.sidebar:
     st.caption("LLM-powered trading agent")
     st.divider()
 
-    selected_ticker = st.selectbox("Active Ticker", all_tickers)
+pg = st.navigation(pages)
 
-    # ── Ticker search ────────────────────────────────────────────────
-    with st.expander("Add Ticker", expanded=False):
-        search_query = st.text_input(
-            "Search by name or symbol",
-            placeholder="e.g. nvidia, TSLA, apple…",
-            key="ticker_search",
-        )
-        if search_query:
-            results = search_yahoo_tickers(search_query)
-            if results:
-                options = {
-                    f"{r['symbol']}  —  {r['name']}": r["symbol"]
-                    for r in results
-                }
-                chosen_label = st.radio(
-                    "Select a result",
-                    list(options.keys()),
-                    index=None,
-                    key="search_results",
-                )
-                if chosen_label:
-                    chosen_symbol = options[chosen_label]
-                    is_added = chosen_symbol in all_tickers
-
-                    if is_added:
-                        btn_label = f"Remove {chosen_symbol}"
-                        btn_type = "secondary"
-                    else:
-                        btn_label = f"Add {chosen_symbol}"
-                        btn_type = "primary"
-
-                    if st.button(
-                        btn_label,
-                        width="stretch",
-                        type=btn_type,
-                    ):
-                        if is_added:
-                            if chosen_symbol in st.session_state.custom_tickers:
-                                st.session_state.custom_tickers.remove(
-                                    chosen_symbol
-                                )
-                                save_custom_tickers(
-                                    st.session_state.custom_tickers
-                                )
-                        else:
-                            st.session_state.custom_tickers.append(
-                                chosen_symbol
-                            )
-                            save_custom_tickers(
-                                st.session_state.custom_tickers
-                            )
-                            # Auto-fetch and ingest news for the new ticker
-                            with st.spinner(f"Fetching news for {chosen_symbol}…"):
-                                from core.rss_fetcher import fetch_news_for_ticker
-                                from core.ingestion import ingest_news
-                                news_docs = fetch_news_for_ticker(chosen_symbol)
-                                if news_docs:
-                                    ingest_news(news_docs)
-                        st.rerun()
-            else:
-                st.caption("No results found.")
-
-    st.divider()
-
-    # ── Action Budget (per-ticker) ───────────────────────────────────
-    _sel_actions = st.session_state.actions_today.get(selected_ticker, 0)
-    st.markdown(f"### Daily Budget — {selected_ticker}")
-    budget_pct = (
-        _sel_actions / MAX_ACTIONS_PER_DAY if MAX_ACTIONS_PER_DAY > 0 else 0
-    )
-    st.progress(min(budget_pct, 1.0))
-    st.caption(f"{_sel_actions} / {MAX_ACTIONS_PER_DAY} actions used")
-
-    st.divider()
+with st.sidebar:
 
     # ── Status Indicators ────────────────────────────────────────────
     st.markdown("### Status")
@@ -204,32 +124,8 @@ with st.sidebar:
         )
 
 
-# ── Tabs ─────────────────────────────────────────────────────────────────────
-t_stocks, t_dash, t_analysis, t_news, t_charts, t_pipe = st.tabs(
-    [
-        "Stocks",
-        "Dashboard",
-        "Analysis",
-        "News Feed",
-        "Charts",
-        "Pipeline",
-    ]
-)
+# Set default selected_ticker if not set
+if "selected_ticker" not in st.session_state or not st.session_state.selected_ticker:
+    st.session_state.selected_ticker = all_tickers[0] if all_tickers else None
 
-with t_stocks:
-    tab_stocks.render(selected_ticker)
-
-with t_dash:
-    tab_dashboard.render(selected_ticker)
-
-with t_analysis:
-    tab_analysis.render(selected_ticker)
-
-with t_news:
-    tab_news.render(selected_ticker)
-
-with t_charts:
-    tab_charts.render(selected_ticker)
-
-with t_pipe:
-    tab_pipeline.render(selected_ticker)
+pg.run()

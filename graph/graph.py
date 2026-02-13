@@ -43,9 +43,3 @@ workflow.add_edge(EXECUTE_DECISION, END)
 
 # Compile
 app = workflow.compile()
-
-# Optionally export the graph visualisation
-try:
-    app.get_graph().draw_mermaid_png(output_file_path="graph.png")
-except Exception:
-    pass  # non-critical – skip if mermaid rendering unavailable

@@ -106,9 +106,11 @@ def estimate_cost_per_day(model: str = LLM_MODEL) -> float:
 
 
 # ── Persistent Storage ──────────────────────────────────────────────────────
-_CUSTOM_TICKERS_FILE = ROOT / ".custom_tickers.json"
-_DECISIONS_FILE = ROOT / ".decisions.json"
-_ACTIONS_TODAY_FILE = ROOT / ".actions_today.json"
+_DATA_DIR = ROOT / "data"
+_DATA_DIR.mkdir(exist_ok=True)
+_CUSTOM_TICKERS_FILE = _DATA_DIR / "custom_tickers.json"
+_DECISIONS_FILE = _DATA_DIR / "decisions.json"
+_ACTIONS_TODAY_FILE = _DATA_DIR / "actions_today.json"
 
 
 def load_custom_tickers() -> list[str]:
@@ -162,21 +164,33 @@ def save_decisions(decisions: list[dict]) -> None:
 
 
 def load_actions_today() -> dict[str, int]:
-    """Load actions_today from disk."""
+    """Load actions_today from disk, auto-resetting if the date has changed."""
+    today = datetime.now(timezone.utc).date().isoformat()
     if _ACTIONS_TODAY_FILE.exists():
         try:
             with open(_ACTIONS_TODAY_FILE, "r") as f:
-                return json.load(f)
+                data = json.load(f)
+            # New format: {"date": "YYYY-MM-DD", "actions": {...}}
+            if isinstance(data, dict) and "date" in data:
+                if data["date"] == today:
+                    return data.get("actions", {})
+            # Stale date or legacy format — reset and persist
+            save_actions_today({})
+            return {}
         except Exception:
             return {}
     return {}
 
 
 def save_actions_today(actions: dict[str, int]) -> None:
-    """Save actions_today to disk."""
+    """Save actions_today to disk with the current UTC date."""
     try:
+        data = {
+            "date": datetime.now(timezone.utc).date().isoformat(),
+            "actions": actions,
+        }
         with open(_ACTIONS_TODAY_FILE, "w") as f:
-            json.dump(actions, f, indent=2)
+            json.dump(data, f, indent=2)
     except Exception:
         pass
 
@@ -219,11 +233,12 @@ def init_session_state() -> None:
     if "custom_tickers" not in st.session_state:
         st.session_state.custom_tickers = load_custom_tickers()
 
-    # Reset counters at midnight UTC
+    # Reset counters at midnight UTC — reload from disk (date-aware)
     now = datetime.now(timezone.utc)
     if now.date() != st.session_state.current_day:
-        st.session_state.actions_today = {}
+        st.session_state.actions_today = load_actions_today()
         st.session_state.current_day = now.date()
+        save_actions_today(st.session_state.actions_today)
 
 
 def get_all_tickers() -> list[str]:
@@ -348,7 +363,7 @@ def _run_analysis_loop(ticker: str, stop_flag: threading.Event) -> None:
     Background thread function: runs analysis for ticker every 5 minutes until stopped.
     Uses only thread-safe parameters, no session_state access.
     """
-    RUN_INTERVAL = 300  # 5 minutes
+    RUN_INTERVAL = RUN_INTERVAL_SECONDS
     
     while not stop_flag.is_set():
         try:
@@ -401,6 +416,7 @@ def _run_analysis_loop(ticker: str, stop_flag: threading.Event) -> None:
                     "chart_summary": "",
                     "portfolio_context": "",
                     "decision": "",
+                    "quantity": 0,
                     "reasoning": "",
                     "actions_today": _current_actions,
                     "max_actions": MAX_ACTIONS_PER_DAY,
@@ -421,7 +437,7 @@ def _run_analysis_loop(ticker: str, stop_flag: threading.Event) -> None:
                     "timestamp": datetime.now(timezone.utc),
                     "ticker": ticker,
                     "decision": result.get("decision", "hold"),
-                    "reasoning": result.get("reasoning", "")[:120] + "…",
+                    "reasoning": (r[:120] + "…") if len(r := result.get("reasoning", "")) > 120 else r,
                     "executed": result.get("executed", False),
                 },
             )
@@ -487,8 +503,8 @@ def get_time_until_next_run(ticker: str) -> tuple[int, int]:
     Returns (minutes, seconds).
     """
     global _last_run_time
-    
-    RUN_INTERVAL = 300  # 5 minutes
+
+    RUN_INTERVAL = RUN_INTERVAL_SECONDS
     
     if ticker not in _last_run_time:
         return (5, 0)

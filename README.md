@@ -220,3 +220,4 @@ All settings live in `config.py` and can be overridden via `.env`:
 ## 📝 License
 
 MIT
+
