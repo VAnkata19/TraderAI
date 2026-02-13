@@ -38,13 +38,22 @@ def load_decisions() -> list[dict]:
         try:
             with open(_DECISIONS_FILE, "r") as f:
                 decisions = json.load(f)
-            
+
             # Filter recent decisions (last 30 days)
             cutoff = datetime.now().timestamp() - (30 * 24 * 60 * 60)
-            recent_decisions = [
-                d for d in decisions 
-                if d.get("timestamp", 0) > cutoff
-            ]
+            recent_decisions = []
+
+            for d in decisions:
+                try:
+                    # Parse ISO format timestamp string
+                    timestamp_str = d.get("timestamp", "")
+                    ts = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00")).timestamp()
+                    if ts > cutoff:
+                        recent_decisions.append(d)
+                except (ValueError, AttributeError):
+                    # If timestamp is invalid, include the decision anyway
+                    recent_decisions.append(d)
+
             return recent_decisions
         except Exception:
             pass

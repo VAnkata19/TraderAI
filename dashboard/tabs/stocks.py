@@ -54,18 +54,11 @@ def timer_fragment(ticker: str, running: bool) -> None:
 
 st.header("Stocks")
 
-# ── Refresh Data Button ────────────────────────────────────────────  
-col_refresh, _ = st.columns([1, 4])
-with col_refresh:
-    if st.button("🔄 Refresh Data", type="secondary", help="Clear cached data and fetch fresh market data"):
-        clear_data_cache()
-        st.success("Data cache cleared! Charts will show fresh data.", icon="✅")
-        st.rerun()
-
 all_tickers = get_all_tickers()
 
-# ── Add Ticker (top-right popover) ────────────────────────────────────
-_, col_add = st.columns([4, 1])
+# ── Add Ticker & Control All ──────────────────────────────────────────
+_, col_add, col_control_all = st.columns([3, 1, 1])
+
 with col_add:
     with st.popover("Add Ticker", width="stretch"):
         search_query = st.text_input(
@@ -130,6 +123,35 @@ with col_add:
             else:
                 st.caption("No results found.")
 
+with col_control_all:
+    # Check how many tickers are currently running
+    running_tickers = [ticker for ticker in all_tickers if is_analysis_running(ticker)]
+    all_running = len(running_tickers) == len(all_tickers) and len(all_tickers) > 0
+    some_running = len(running_tickers) > 0
+    
+    if all_running:
+        # All tickers are running - show Stop All button
+        if st.button("⏹ Stop All", width="stretch", type="secondary"):
+            for ticker in all_tickers:
+                if is_analysis_running(ticker):
+                    stop_analysis_loop(ticker)
+            st.rerun()
+    elif some_running:
+        # Some tickers are running - show Stop All button (for consistency)  
+        if st.button("⏹ Stop All", width="stretch", type="secondary"):
+            for ticker in all_tickers:
+                if is_analysis_running(ticker):
+                    stop_analysis_loop(ticker)
+            st.rerun()
+    else:
+        # No tickers running - show Start All button
+        if st.button("▶ Start All", width="stretch", type="primary"):
+            for ticker in all_tickers:
+                if not is_analysis_running(ticker):
+                    start_analysis_loop(ticker)
+            st.rerun()
+
+# ── Individual Ticker Controls ──────────────────────────────────────────────
 for ticker in all_tickers:
     running = is_analysis_running(ticker)
 

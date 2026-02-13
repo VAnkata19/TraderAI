@@ -85,15 +85,14 @@ pages = [
     _charts_page,
 ]
 
-# ── Sidebar ──────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("# TraderAI")
-    st.caption("LLM-powered trading agent")
-    st.divider()
-
+# ── Navigation ───────────────────────────────────────────────────────────────
 pg = st.navigation(pages)
 
+# ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
+   # st.markdown("# TraderAI")
+   # st.caption("LLM-powered trading agent")
+   # st.divider()
 
     # ── Status Indicators ────────────────────────────────────────────
     st.markdown("### Status")
@@ -106,7 +105,7 @@ with st.sidebar:
     st.divider()
 
     # ── Configuration ────────────────────────────────────────────────
-    with st.expander("Configuration", expanded=True):
+    with st.expander("Configuration", expanded=False):
         # Model selection with dynamic discovery
         available_models = get_available_openai_models()
         
@@ -220,37 +219,33 @@ with st.sidebar:
         if selected_timezone != st.session_state.selected_timezone:
             st.session_state.selected_timezone = selected_timezone
             st.rerun()
-        
-        st.divider()
-        
-        # Dynamic cost calculations - use the current widget values directly
-        cost_per_cycle = estimate_cost_per_cycle(selected_model)
-        cycles_per_day = (24 * 60 * 60) / selected_interval
-        base_cost_per_day = cost_per_cycle * cycles_per_day
-        
-        # Calculate cost considering max actions limit
-        if actual_max_actions == -1:
-            actions_note = "unlimited"
-            estimated_daily_cost = base_cost_per_day
-        else:
-            actions_note = f"max {actual_max_actions}"
-            # Assume analysis runs for all cycles, but actions are limited
-            estimated_daily_cost = base_cost_per_day
-        
-        # Display calculated costs
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric(
-                "Cost per cycle", 
-                f"{cost_per_cycle:.3f}¢",
-                help="Estimated cost per analysis cycle"
-            )
-        with col2:
-            st.metric(
-                "Cost per day", 
-                f"${estimated_daily_cost/100:.2f}",
-                help=f"Estimated daily cost ({actions_note} actions per ticker)"
-            )
+
+    # ── Cost Estimates ──────────────────────────────────────────────────
+    # Dynamic cost calculations - use the current widget values directly
+    cost_per_cycle = estimate_cost_per_cycle(selected_model)
+    cycles_per_day = (24 * 60 * 60) / selected_interval
+    base_cost_per_day = cost_per_cycle * cycles_per_day
+    
+    # Calculate cost considering max actions limit
+    if actual_max_actions == -1:
+        actions_note = "unlimited"
+        estimated_daily_cost = base_cost_per_day
+    else:
+        actions_note = f"max {actual_max_actions}"
+        # Assume analysis runs for all cycles, but actions are limited
+        estimated_daily_cost = base_cost_per_day
+    
+    # Display calculated costs
+    st.metric(
+        "Cost per cycle", 
+        f"{cost_per_cycle:.3f}¢",
+        help="Estimated cost per analysis cycle"
+    )
+    st.metric(
+        "Cost per day", 
+        f"${estimated_daily_cost/100:.2f}",
+        help=f"Estimated daily cost ({actions_note} actions per ticker)"
+    )
 
 
 # Set default selected_ticker if not set

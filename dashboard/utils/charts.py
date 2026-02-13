@@ -254,7 +254,7 @@ def create_mini_price_chart(df: pd.DataFrame, ticker: str, display_timezone: Opt
         ))
     
     fig.update_layout(
-        height=140,
+        height=100,
         margin=dict(l=0, r=0, t=0, b=0),
         showlegend=False,
         xaxis_rangeslider_visible=False,
