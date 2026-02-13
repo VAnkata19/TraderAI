@@ -10,7 +10,7 @@ from dashboard.helpers import (
     get_all_tickers,
     get_ticker_data,
     get_ticker_info,
-    is_analysis_loop_running,
+    is_analysis_running,
     start_analysis_loop,
     stop_analysis_loop,
     get_time_until_next_run,
@@ -121,7 +121,7 @@ with col_add:
                 st.caption("No results found.")
 
 for ticker in all_tickers:
-    running = is_analysis_loop_running(ticker)
+    running = is_analysis_running(ticker)
 
     with st.container(border=True):
         col_info, col_chart, col_price, col_right = st.columns([0.4, 1.5, 0.6, 1.0])
@@ -163,7 +163,7 @@ for ticker in all_tickers:
                         xaxis_rangeslider_visible=False,
                         xaxis=dict(showticklabels=False),
                     )
-                    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+                    st.plotly_chart(fig, width='stretch', config={"displayModeBar": False})
             except Exception:
                 pass
 
@@ -186,25 +186,25 @@ for ticker in all_tickers:
                     st.error("⭕ Inactive")
             with r2:
                 if running:
-                    if st.button("⏹ Stop", key=f"stop_{ticker}", use_container_width=True, type="secondary"):
+                    if st.button("⏹ Stop", key=f"stop_{ticker}", width='stretch', type="secondary"):
                         stop_analysis_loop(ticker)
                         st.rerun()
                 else:
-                    if st.button("▶ Start", key=f"start_{ticker}", use_container_width=True, type="primary"):
+                    if st.button("▶ Start", key=f"start_{ticker}", width='stretch', type="primary"):
                         start_analysis_loop(ticker)
                         st.rerun()
 
             # Action buttons row — 3 equal columns
             a1, a2, a3 = st.columns(3)
             with a1:
-                if st.button("Analysis", key=f"analysis_{ticker}", type="secondary", use_container_width=True):
+                if st.button("Analysis", key=f"analysis_{ticker}", type="secondary", width='stretch'):
                     st.session_state.selected_ticker = ticker
                     st.switch_page(st.session_state._page_analysis)
             with a2:
-                if st.button("Charts", key=f"charts_{ticker}", type="secondary", use_container_width=True):
+                if st.button("Charts", key=f"charts_{ticker}", type="secondary", width='stretch'):
                     st.session_state.selected_ticker = ticker
                     st.switch_page(st.session_state._page_charts)
             with a3:
-                if st.button("News", key=f"news_{ticker}", type="secondary", use_container_width=True):
+                if st.button("News", key=f"news_{ticker}", type="secondary", width='stretch'):
                     st.session_state.selected_ticker = ticker
                     st.switch_page(st.session_state._page_news)

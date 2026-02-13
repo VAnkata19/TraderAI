@@ -55,5 +55,12 @@ ALPACA_BASE_URL = os.getenv("ALPACA_BASE_URL", "https://paper-api.alpaca.markets
 ALPACA_ORDER_QTY = int(os.getenv("ALPACA_ORDER_QTY", "1"))   # shares per trade
 
 # ── Chart data ───────────────────────────────────────────────────────────────
-CHART_PERIOD = os.getenv("CHART_PERIOD", "5d")        # yfinance period
-CHART_INTERVAL = os.getenv("CHART_INTERVAL", "5m")    # yfinance interval
+CHART_PERIOD = os.getenv("CHART_PERIOD", "2d")        # Reduced to get more recent, focused data  
+CHART_INTERVAL = os.getenv("CHART_INTERVAL", "5m")    # 5-minute intervals for good resolution
+
+# ── Alpaca market data ───────────────────────────────────────────────────────
+USE_ALPACA_DATA = os.getenv("USE_ALPACA_DATA", "true").lower() == "true"
+USE_ALPACA_HISTORICAL = os.getenv("USE_ALPACA_HISTORICAL", "false").lower() == "true"  # Requires paid plan
+ALPACA_RATE_LIMIT_PER_MINUTE = int(os.getenv("ALPACA_RATE_LIMIT_PER_MINUTE", "180"))  # Buffer below 200
+ALPACA_HISTORICAL_CACHE_SECONDS = int(os.getenv("ALPACA_HISTORICAL_CACHE_SECONDS", "300"))  # 5 minutes
+ALPACA_QUOTE_CACHE_SECONDS = int(os.getenv("ALPACA_QUOTE_CACHE_SECONDS", "30"))  # 30 seconds

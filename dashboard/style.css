@@ -1,9 +1,6 @@
 /* TraderAI Dashboard Styles */
 
 /* Hide the "hidden" navigation section in the sidebar */
-div[data-testid="stSidebarNav"] span:not(:empty) {
-    /* Only needed if section headers appear — handled below */
-}
 section[data-testid="stSidebar"] li a[href*="analysis"],
 section[data-testid="stSidebar"] li a[href*="/news"],
 section[data-testid="stSidebar"] li a[href*="/charts"] {

@@ -36,6 +36,7 @@ from dashboard.helpers import (
     is_discord_valid,
     estimate_cost_per_cycle,
     estimate_cost_per_day,
+    get_available_openai_models,
 )
 
 
@@ -80,7 +81,6 @@ pages = [
     st.Page(str(_TABS_DIR / "dashboard.py"), title="Dashboard", url_path="dashboard", default=True),
     st.Page(str(_TABS_DIR / "stocks.py"), title="Stocks", url_path="stocks"),
     st.Page(str(_TABS_DIR / "transactions.py"), title="Transactions", url_path="transactions"),
-    st.Page(str(_TABS_DIR / "pipeline.py"), title="Pipeline", url_path="pipeline"),
     _analysis_page,
     _news_page,
     _charts_page,
@@ -107,21 +107,73 @@ with st.sidebar:
     st.divider()
 
     # ── Configuration ────────────────────────────────────────────────
-    with st.expander("Configuration"):
-        cost_per_cycle = estimate_cost_per_cycle(LLM_MODEL)
-        cost_per_day = estimate_cost_per_day(LLM_MODEL)
-        st.markdown(
-            f"""
-| Setting | Value |
-|---------|-------|
-| Model | `{LLM_MODEL}` |
-| Interval | {RUN_INTERVAL_SECONDS}s |
-| Chart Period | {CHART_PERIOD} |
-| Chart Interval | {CHART_INTERVAL} |
-| Cost per cycle | ~{cost_per_cycle:.2f}¢ |
-| Cost per day | ~${cost_per_day/100:.2f} |
-"""
+    with st.expander("Configuration", expanded=True):
+        # Model selection with dynamic discovery
+        available_models = get_available_openai_models()
+        
+        try:
+            current_model_idx = available_models.index(LLM_MODEL)
+        except ValueError:
+            current_model_idx = 0  # Default to first available model
+            
+        selected_model = st.selectbox(
+            "Model", 
+            available_models, 
+            index=current_model_idx,
+            key="config_model"
         )
+        
+        # Interval (Run Interval)
+        selected_interval = st.number_input(
+            "Interval (seconds)",
+            min_value=60,
+            max_value=3600,
+            value=RUN_INTERVAL_SECONDS,
+            step=60,
+            key="config_interval"
+        )
+        
+        # Chart Period
+        period_options = ["1d", "2d", "5d", "1mo", "3mo"]
+        current_period_idx = period_options.index(CHART_PERIOD) if CHART_PERIOD in period_options else 1
+        selected_period = st.selectbox(
+            "Chart Period",
+            period_options,
+            index=current_period_idx,
+            key="config_chart_period"
+        )
+        
+        # Chart Interval
+        interval_options = ["1m", "2m", "5m", "15m", "30m", "1h", "1d"]
+        current_interval_idx = interval_options.index(CHART_INTERVAL) if CHART_INTERVAL in interval_options else 2
+        selected_chart_interval = st.selectbox(
+            "Chart Interval",
+            interval_options,
+            index=current_interval_idx,
+            key="config_chart_interval"
+        )
+        
+        st.divider()
+        
+        # Dynamic cost calculations - use the current widget values directly
+        cost_per_cycle = estimate_cost_per_cycle(selected_model)
+        cycles_per_day = (24 * 60 * 60) / selected_interval
+        cost_per_day = cost_per_cycle * cycles_per_day
+        
+        # Display calculated costs
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric(
+                "Cost per cycle", 
+                f"{cost_per_cycle:.3f}¢",
+                help="Estimated cost per analysis cycle"
+            )
+        with col2:
+            st.metric(
+                "Cost per day", 
+                f"${cost_per_day/100:.2f}",
+                help="Estimated daily cost based on interval"
+            )
 
 
 # Set default selected_ticker if not set

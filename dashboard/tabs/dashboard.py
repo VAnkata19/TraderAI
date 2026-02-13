@@ -12,7 +12,7 @@ from config import MAX_ACTIONS_PER_DAY, LLM_MODEL, RUN_INTERVAL_SECONDS
 from dashboard.helpers import (
     get_all_tickers,
     get_ticker_info,
-    is_analysis_loop_running,
+    is_analysis_running,
     estimate_cost_per_cycle,
 )
 
@@ -189,7 +189,7 @@ with col_market:
     ticker_rows = []
     for t in all_tickers:
         info = get_ticker_info(t)
-        running = is_analysis_loop_running(t)
+        running = is_analysis_running(t)
         if info:
             ticker_rows.append({
                 "Ticker": t,
@@ -261,7 +261,7 @@ st.divider()
 st.subheader("System")
 s1, s2, s3, s4 = st.columns(4)
 with s1:
-    active_loops = sum(1 for t in all_tickers if is_analysis_loop_running(t))
+    active_loops = sum(1 for t in all_tickers if is_analysis_running(t))
     st.metric("Active Agents", f"{active_loops} / {len(all_tickers)}")
 with s2:
     total_decisions = len(st.session_state.get("decisions", []))
