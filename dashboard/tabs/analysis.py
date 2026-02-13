@@ -157,14 +157,23 @@ if run_btn:
 
         decision = result["decision"]
         
-        # Import helper function
-        from dashboard.tabs.stocks import get_decision_badge_html
-        decision_html = get_decision_badge_html(decision)
-        st.markdown(f"**Decision:** {decision_html}", unsafe_allow_html=True)
+        # Set color based on decision
+        if decision.upper() == "BUY":
+            decision_color = "#00ff00"  # Green
+        elif decision.upper() == "SELL":
+            decision_color = "#ff4444"  # Red
+        else:  # HOLD
+            decision_color = "#ffaa00"  # Orange
 
         m1, m2, m3 = st.columns(3)
         with m1:
-            st.markdown(f"**Decision:** {decision_html}", unsafe_allow_html=True)
+            # Create metric-like display with colored decision
+            st.markdown(f"""
+            <div style="padding: 0.5rem 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                <div style="font-size: 0.875rem; font-weight: 400; color: rgba(250, 250, 250, 0.6);">Decision</div>
+                <div style="font-size: 2.25rem; font-weight: 600; color: {decision_color}; line-height: 1.2;">{decision.upper()}</div>
+            </div>
+            """, unsafe_allow_html=True)
         with m2:
             st.metric(
                 "Executed", "Yes ✓" if result["executed"] else "No"

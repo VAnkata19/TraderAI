@@ -67,7 +67,7 @@ def save_decisions(decisions: list[dict]) -> None:
         decisions = decisions[-1000:]
     
     with open(_DECISIONS_FILE, "w") as f:
-        json.dump(decisions, f, indent=2)
+        json.dump(decisions, f, indent=2, default=str)
 
 
 def load_actions_today() -> dict[str, int]:

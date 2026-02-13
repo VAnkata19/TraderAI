@@ -222,36 +222,57 @@ with col_activity:
     st.subheader("Recent Decisions")
     decisions = st.session_state.get("decisions", [])
     if decisions:
+        # Prepare data for table
+        table_data = []
         for d in decisions[:8]:
             try:
                 ts = d.get("timestamp", "")
                 if hasattr(ts, "strftime"):
-                    time_str = ts.strftime("%H:%M")
+                    time_str = ts.strftime("%Y-%m-%d %H:%M")
                 else:
-                    time_str = str(ts)[:16]
+                    time_str = str(ts)[:16] if ts else "Unknown"
 
-                dec = d.get("decision", "hold")
+                dec = d.get("decision", "hold").upper()
                 ticker = d.get("ticker", "?")
-                executed = d.get("executed", False)
 
-                # Sanitize ticker and decision to prevent HTML injection
-                ticker = str(ticker)[:10]  # Limit ticker length
-                if dec not in ["buy", "sell", "hold"]:
-                    dec = "hold"
+                # Sanitize ticker and decision
+                ticker = str(ticker)[:10]
+                if dec not in ["BUY", "SELL", "HOLD"]:
+                    dec = "HOLD"
 
-                # Generate decision badge HTML
-                decision_html = get_decision_badge_html(dec)
-                exec_badge = " ✓" if executed else ""
-
-                # Use container to isolate each decision
-                with st.container():
-                    st.markdown(
-                        f"{ticker} — {decision_html} : {time_str}{exec_badge}",
-                        unsafe_allow_html=True,
-                    )
+                table_data.append({
+                    "Ticker": ticker,
+                    "Decision": dec,  # Just plain text for now
+                    "Time": time_str
+                })
             except Exception:
-                # Skip malformed decision entries
                 continue
+        
+        if table_data:
+            df_decisions = pd.DataFrame(table_data)
+            
+            # Apply color styling to the dataframe
+            def color_decisions(val):
+                if val == "BUY":
+                    return "color: #00ff00"  # Green
+                elif val == "SELL":
+                    return "color: #ff4444"  # Red
+                elif val == "HOLD":
+                    return "color: #ffaa00"  # Orange
+                return ""
+            
+            styled_df = df_decisions.style.applymap(color_decisions, subset=['Decision'])
+            
+            st.dataframe(
+                styled_df,
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "Ticker": st.column_config.TextColumn("Ticker", width="small"),
+                    "Decision": st.column_config.TextColumn("Decision", width="medium"),
+                    "Time": st.column_config.TextColumn("Time", width="medium")
+                }
+            )
     else:
         st.caption("No decisions yet.")
 
