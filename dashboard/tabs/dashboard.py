@@ -32,7 +32,7 @@ def get_decision_badge_html(decision: str) -> str:
 @st.cache_data(ttl=30)
 def _fetch_account():
     try:
-        from core.alpaca_broker import get_account
+        from core.alpaca import get_account
         return get_account()
     except Exception:
         return None
@@ -41,7 +41,7 @@ def _fetch_account():
 @st.cache_data(ttl=30)
 def _fetch_positions():
     try:
-        from core.alpaca_broker import get_positions
+        from core.alpaca import get_positions
         return get_positions()
     except Exception:
         return []
@@ -50,7 +50,7 @@ def _fetch_positions():
 @st.cache_data(ttl=60)
 def _fetch_recent_orders():
     try:
-        from core.alpaca_broker import get_orders
+        from core.alpaca import get_orders
         return get_orders(status="closed", limit=20)
     except Exception:
         return []

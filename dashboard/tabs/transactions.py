@@ -23,14 +23,14 @@ def _parse_timestamp(ts: str | None) -> str:
 
 @st.cache_data(ttl=30)
 def _fetch_orders(status: str, limit: int, symbols: str | None):
-    from core.alpaca_broker import get_orders
+    from core.alpaca import get_orders
 
     return get_orders(status=status, limit=limit, symbols=symbols)
 
 
 @st.cache_data(ttl=30)
 def _fetch_fills(limit: int):
-    from core.alpaca_broker import get_fill_activity
+    from core.alpaca import get_fill_activity
 
     return get_fill_activity(limit=limit)
 

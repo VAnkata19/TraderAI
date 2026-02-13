@@ -109,7 +109,7 @@ LLM_MODEL=gpt-4o
 uv sync
 
 # Start Streamlit dashboard (has built-in Start/Stop buttons per ticker)
-streamlit run trader_agent/dashboard/app.py
+uv run streamlit run dashboard/app.py
 
 # Or run CLI scheduler in parallel (optional, for when dashboard is closed)
 python -m trader_agent.main
@@ -125,7 +125,7 @@ python -m trader_agent.main
 | **Dashboard** | Market overview & recent decision history. |
 | **Analysis** | On-demand single-ticker analysis. Run the full pipeline manually. |
 | **News Feed** | Browse fetched articles for selected ticker. |
-| **Charts** | Interactive candlestick charts with configurable periods & intervals. |
+| **Charts** | Interactive candlestick charts with configurable periods & intervals. Shows market hours vs pre/post-market data. |
 | **Pipeline** | Visualize the LangGraph workflow and decision rules. |
 
 **Features:**
@@ -135,6 +135,7 @@ python -m trader_agent.main
 - ✅ Daily action budget tracker
 - ✅ Decision history with full reasoning
 - ✅ OpenAI + Discord status indicators
+- ✅ Market hours visualization (grey = pre/post market, colored = regular hours)
 
 ## 📁 Project Structure
 

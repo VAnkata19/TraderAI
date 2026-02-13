@@ -19,7 +19,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from graph.nodes.execute_decision import execute_decision
-from core.alpaca_broker import get_position, get_orders
+from core.alpaca import get_position, get_orders
 
 TICKER = "AAPL"
 

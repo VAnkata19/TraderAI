@@ -1,12 +1,13 @@
 """
-Data fetching and ticker management utilities.
+Data fetching and ticker management utilities using provider chains.
 """
 
 import pandas as pd
 import streamlit as st
-import yfinance as yf
-from config import TICKERS, USE_ALPACA_DATA, USE_ALPACA_HISTORICAL
+from config import TICKERS
 from dashboard.utils.storage import load_custom_tickers
+from core.providers.chains import get_historical_bars_chain, get_ticker_info_chain
+from core.alpaca import clear_alpaca_cache
 
 
 def get_all_tickers() -> list[str]:
@@ -53,44 +54,32 @@ def search_yahoo_tickers(query: str) -> list[dict]:
 
 
 def get_ticker_data(ticker: str, period: str = "5d", interval: str = "5m") -> pd.DataFrame:
-    """Get OHLCV data for ticker, using Alpaca with yfinance fallback."""
-    if USE_ALPACA_DATA and USE_ALPACA_HISTORICAL:
+    """Get OHLCV data for ticker using configured provider chain (Alpaca → yfinance)."""
+    chain = get_historical_bars_chain()
+    return chain.get_historical_bars(ticker, period, interval)
+
+
+def clear_data_cache():
+    """Clear all cached data to force fresh fetches."""
+    # Clear Streamlit cache
+    if hasattr(st, 'cache_data'):
         try:
-            from core.alpaca_broker import get_historical_bars_alpaca
-            return get_historical_bars_alpaca(ticker, period, interval)
-        except Exception as e:
-            print(f"[DASHBOARD] Alpaca data fetch failed: {e}, using yfinance")
-            # Include pre-market and after-hours for complete picture
-            return yf.Ticker(ticker).history(period=period, interval=interval, prepost=True)
-    else:
-        # Include pre-market and after-hours for complete picture
-        return yf.Ticker(ticker).history(period=period, interval=interval, prepost=True)
+            st.cache_data.clear()
+        except Exception:
+            pass
+
+    # Clear Alpaca cache
+    try:
+        clear_alpaca_cache()
+        return True
+    except Exception:
+        pass
+
+    return False
 
 
 @st.cache_data(ttl=60)
 def get_ticker_info(ticker: str) -> dict | None:
-    """Get current ticker info (price, change, etc.) using Alpaca with yfinance fallback."""
-    if USE_ALPACA_DATA:
-        try:
-            from core.alpaca_broker import get_ticker_info_alpaca
-            return get_ticker_info_alpaca(ticker)
-        except Exception as e:
-            print(f"[DASHBOARD] Alpaca ticker info failed: {e}, using yfinance")
-    
-    # Fallback to yfinance
-    try:
-        info = yf.Ticker(ticker).fast_info
-        prev = info.previous_close
-        last = info.last_price
-        
-        if last is None or prev is None:
-            return None
-            
-        return {
-            "price": last,
-            "prev_close": prev,
-            "change": last - prev,
-            "change_pct": ((last - prev) / prev) * 100 if prev else 0,
-        }
-    except Exception:
-        return None
+    """Get current ticker info (price, change, etc.) using configured provider chain."""
+    chain = get_ticker_info_chain()
+    return chain.get_ticker_info(ticker)

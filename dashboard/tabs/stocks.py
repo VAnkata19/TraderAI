@@ -3,7 +3,6 @@ Page: Stocks — real-time stock monitoring with looping analysis.
 """
 
 import streamlit as st
-import plotly.graph_objects as go
 
 from config import MAX_ACTIONS_PER_DAY
 from dashboard.helpers import (
@@ -16,6 +15,8 @@ from dashboard.helpers import (
     get_time_until_next_run,
     search_yahoo_tickers,
     save_custom_tickers,
+    create_mini_price_chart,
+    clear_data_cache,
 )
 
 
@@ -53,6 +54,14 @@ def timer_fragment(ticker: str, running: bool) -> None:
 
 
 st.header("Stocks")
+
+# ── Refresh Data Button ────────────────────────────────────────────  
+col_refresh, _ = st.columns([1, 4])
+with col_refresh:
+    if st.button("🔄 Refresh Data", type="secondary", help="Clear cached data and fetch fresh market data"):
+        clear_data_cache()
+        st.success("Data cache cleared! Charts will show fresh data.", icon="✅")
+        st.rerun()
 
 all_tickers = get_all_tickers()
 
@@ -146,24 +155,11 @@ for ticker in all_tickers:
             try:
                 df = get_ticker_data(ticker, period="1d", interval="1m")
                 if not df.empty:
-                    fig = go.Figure(data=[go.Candlestick(
-                        x=df.index,
-                        open=df["Open"],
-                        high=df["High"],
-                        low=df["Low"],
-                        close=df["Close"],
-                        increasing_line_color="#2ecc71",
-                        decreasing_line_color="#e74c3c",
-                    )])
-                    fig.update_layout(
-                        template="plotly_dark",
-                        height=140,
-                        margin=dict(l=0, r=0, t=0, b=0),
-                        showlegend=False,
-                        xaxis_rangeslider_visible=False,
-                        xaxis=dict(showticklabels=False),
-                    )
-                    st.plotly_chart(fig, width='stretch', config={"displayModeBar": False})
+                    # Use the helper function with market hours visualization and selected timezone
+                    display_timezone = getattr(st.session_state, 'selected_timezone', 'US/Eastern')
+                    fig = create_mini_price_chart(df, ticker, display_timezone)
+                    if fig.data:  # Only show if chart has data
+                        st.plotly_chart(fig, width='stretch', config={"displayModeBar": False})
             except Exception:
                 pass
 

@@ -8,11 +8,21 @@ import streamlit as st
 from dashboard.helpers import (
     create_candlestick_chart,
     get_ticker_data,
+    clear_data_cache,
 )
+from dashboard.utils.charts import split_market_hours_data
 
 
 selected_ticker = st.session_state.selected_ticker
 st.header(f"Chart — {selected_ticker}")
+
+# ── Refresh Data Button ────────────────────────────────────────────  
+col_refresh, _ = st.columns([1, 4])
+with col_refresh:
+    if st.button("🔄 Refresh Charts", type="secondary", help="Clear cached data and fetch fresh market data"):
+        clear_data_cache()
+        st.success("Data cache cleared! Charts will show fresh data.", icon="✅")
+        st.rerun()
 
 cc1, cc2, cc3 = st.columns(3)
 with cc1:
@@ -41,22 +51,48 @@ try:
     )
     if not df.empty:
         if chart_type == "Candlestick":
-            fig = create_candlestick_chart(df, selected_ticker)
+            display_timezone = getattr(st.session_state, 'selected_timezone', 'US/Eastern')
+            fig = create_candlestick_chart(df, selected_ticker, display_timezone)
         else:
+            # Line chart with market hours styling
             fig = go.Figure()
-            fig.add_trace(
-                go.Scatter(
-                    x=df.index,
-                    y=df["Close"],
-                    mode="lines",
-                    name="Close",
-                    line=dict(color="#3498db", width=2),
+            
+            # Split data by market hours with selected timezone
+            display_timezone = getattr(st.session_state, 'selected_timezone', 'US/Eastern')
+            market_df, off_hours_df = split_market_hours_data(df, display_timezone)
+            
+            # Add off-hours line (grey)
+            if not off_hours_df.empty:
+                fig.add_trace(
+                    go.Scatter(
+                        x=off_hours_df.index,
+                        y=off_hours_df["Close"],
+                        mode="lines",
+                        name="Pre/Post Market",
+                        line=dict(color="#888888", width=2),
+                        opacity=0.6
+                    )
                 )
-            )
+            
+            # Add market hours line (colored)
+            if not market_df.empty:
+                fig.add_trace(
+                    go.Scatter(
+                        x=market_df.index,
+                        y=market_df["Close"],
+                        mode="lines",
+                        name="Market Hours",
+                        line=dict(color="#3498db", width=2),
+                    )
+                )
+            
+            timezone_display = f"Time ({display_timezone})" if display_timezone else "Time (Local)"
             fig.update_layout(
                 template="plotly_dark",
                 height=500,
                 margin=dict(l=0, r=0, t=10, b=0),
+                showlegend=True,
+                xaxis_title=timezone_display
             )
         st.plotly_chart(fig, width="stretch")
 

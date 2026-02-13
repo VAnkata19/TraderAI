@@ -9,7 +9,7 @@ from typing import Any, Dict
 
 from graph.state import GraphState
 from core.discord_notifier import send_discord_message
-from core.alpaca_broker import (
+from core.alpaca import (
     submit_market_order,
     get_current_price,
     get_position,

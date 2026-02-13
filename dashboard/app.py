@@ -153,6 +153,52 @@ with st.sidebar:
             key="config_chart_interval"
         )
         
+        # Timezone Selection
+        timezone_options = [
+            "US/Eastern",     # EST/EDT
+            "US/Central",     # CST/CDT  
+            "US/Mountain",    # MST/MDT
+            "US/Pacific",     # PST/PDT
+            "Europe/London",  # GMT/BST
+            "Europe/Paris",   # CET/CEST
+            "Europe/Berlin",  # CET/CEST
+            "Asia/Tokyo",     # JST
+            "Asia/Hong_Kong", # HKT
+            "Asia/Shanghai",  # CST
+            "Australia/Sydney", # AEST/AEDT
+            "UTC"             # UTC
+        ]
+        
+        # Initialize timezone setting if not set
+        if "selected_timezone" not in st.session_state:
+            import pytz
+            from datetime import datetime
+            # Auto-detect local timezone as default
+            local_tz = datetime.now().astimezone().tzinfo 
+            local_tz_name = str(local_tz)
+            
+            # Try to match with available options
+            if local_tz_name in timezone_options:
+                default_idx = timezone_options.index(local_tz_name)
+            else:
+                # Default to Eastern time (market timezone) if no match
+                default_idx = 0
+            st.session_state.selected_timezone = timezone_options[default_idx]
+        
+        current_tz_idx = timezone_options.index(st.session_state.selected_timezone) if st.session_state.selected_timezone in timezone_options else 0
+        selected_timezone = st.selectbox(
+            "Display Timezone",
+            timezone_options,
+            index=current_tz_idx,
+            key="config_timezone",
+            help="Timezone for chart display. Market data always uses Eastern time for market hours detection."
+        )
+        
+        # Update session state when timezone changes
+        if selected_timezone != st.session_state.selected_timezone:
+            st.session_state.selected_timezone = selected_timezone
+            st.rerun()
+        
         st.divider()
         
         # Dynamic cost calculations - use the current widget values directly

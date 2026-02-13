@@ -1,15 +1,19 @@
 """
-Node: Run news-sentiment and chart-technical analysis, then produce a
+Node: Run news-sentiment and chart-technical analysis in parallel, then produce a
       trading decision (buy / sell / hold).
+
+Uses ChainOrchestrator for concurrent execution with timeout handling.
 """
 
 from typing import Any, Dict
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 from graph.state import GraphState
-from graph.chains.news_analyzer import news_sentiment_chain
-from graph.chains.chart_analyzer import chart_analysis_chain
-from graph.chains.trading_decision import trading_decision_chain, TradingDecision
+from graph.orchestrator import ChainOrchestrator, ChainExecutionConfig
+from graph.chains import ChainFactory, TradingDecision
+
+# Build chains and orchestrator once at module load
+_chains = ChainFactory.build_all_chains()
+_orchestrator = ChainOrchestrator(default_timeout=30.0)
 
 
 def analyze(state: GraphState) -> Dict[str, Any]:
@@ -20,96 +24,78 @@ def analyze(state: GraphState) -> Dict[str, Any]:
     portfolio_context = state.get("portfolio_context", "No portfolio data available.")
     actions_today = state["actions_today"]
     max_actions = state["max_actions"]
-    
-    # Timeout in seconds for each LLM call
-    LLM_TIMEOUT = 30
 
-    try:
-        # ── 1. Summarise news sentiment ──────────────────────────────────────
-        try:
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(
-                    news_sentiment_chain.invoke,
-                    {
-                        "ticker": ticker,
-                        "news_documents": "\n\n---\n\n".join(news_docs) if news_docs else "No recent news available.",
-                    }
-                )
-                news_summary = future.result(timeout=LLM_TIMEOUT)
-            print(f"[ANALYZE] News summary generated")
-        except FuturesTimeoutError:
-            print(f"[ANALYZE] ⚠️  News sentiment analysis timed out (>{LLM_TIMEOUT}s)")
-            news_summary = "Unable to retrieve news sentiment (timeout). Proceeding with neutral assumption."
-        except Exception as e:
-            print(f"[ANALYZE] ⚠️  News sentiment analysis failed: {e}")
-            news_summary = "Unable to retrieve news sentiment (error). Proceeding with neutral assumption."
+    # ── Phase 1: Parallel execution of news + chart analysis ──────────────────
+    # These are independent and can run concurrently for ~33% performance gain
+    parallel_chains = [
+        (
+            ChainExecutionConfig(
+                name="news_summary",
+                timeout=30.0,
+                fallback_value="Unable to retrieve news sentiment (timeout). Proceeding with neutral assumption.",
+                required=False,
+            ),
+            _chains["news_sentiment"],
+            {
+                "ticker": ticker,
+                "news_documents": "\n\n---\n\n".join(news_docs) if news_docs else "No recent news available.",
+            },
+        ),
+        (
+            ChainExecutionConfig(
+                name="chart_summary",
+                timeout=30.0,
+                fallback_value="Unable to retrieve chart analysis (timeout). Proceeding with neutral assumption.",
+                required=False,
+            ),
+            _chains["chart_analysis"],
+            {
+                "ticker": ticker,
+                "chart_documents": "\n\n---\n\n".join(chart_docs) if chart_docs else "No chart data available.",
+            },
+        ),
+    ]
 
-        # ── 2. Summarise chart technicals ────────────────────────────────────
-        try:
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(
-                    chart_analysis_chain.invoke,
-                    {
-                        "ticker": ticker,
-                        "chart_documents": "\n\n---\n\n".join(chart_docs) if chart_docs else "No chart data available.",
-                    }
-                )
-                chart_summary = future.result(timeout=LLM_TIMEOUT)
-            print(f"[ANALYZE] Chart summary generated")
-        except FuturesTimeoutError:
-            print(f"[ANALYZE] ⚠️  Chart analysis timed out (>{LLM_TIMEOUT}s)")
-            chart_summary = "Unable to retrieve chart analysis (timeout). Proceeding with neutral assumption."
-        except Exception as e:
-            print(f"[ANALYZE] ⚠️  Chart analysis failed: {e}")
-            chart_summary = "Unable to retrieve chart analysis (error). Proceeding with neutral assumption."
+    summaries = _orchestrator.execute_parallel(parallel_chains)
+    news_summary = summaries["news_summary"]
+    chart_summary = summaries["chart_summary"]
 
-        # ── 3. Make trading decision ─────────────────────────────────────────
-        try:
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(
-                    trading_decision_chain.invoke,
-                    {
-                        "ticker": ticker,
-                        "news_summary": news_summary,
-                        "chart_summary": chart_summary,
-                        "portfolio_context": portfolio_context,
-                        "actions_today": actions_today,
-                        "max_actions": max_actions,
-                    }
-                )
-                result: TradingDecision = future.result(timeout=LLM_TIMEOUT)  # type: ignore[assignment]
-            print(f"[ANALYZE] Decision: {result.decision} (confidence: {result.confidence:.2f})")
-        except FuturesTimeoutError:
-            print(f"[ANALYZE] ⚠️  Trading decision timed out (>{LLM_TIMEOUT}s), defaulting to HOLD")
-            result = TradingDecision(
-                decision="hold",
-                reasoning="Unable to reach decision due to timeout. Defaulting to HOLD.",
-                quantity=0,
-                confidence=0.3
-            )
-        except Exception as e:
-            print(f"[ANALYZE] ⚠️  Trading decision failed: {e}, defaulting to HOLD")
-            result = TradingDecision(
-                decision="hold",
-                reasoning="Unable to reach decision due to error. Defaulting to HOLD.",
-                quantity=0,
-                confidence=0.3
-            )
+    # ── Phase 2: Trading decision (depends on summaries) ────────────────────────
+    # This must run sequentially after summaries are ready
+    decision_chains = [
+        (
+            ChainExecutionConfig(
+                name="decision",
+                timeout=30.0,
+                fallback_value=TradingDecision(
+                    decision="hold",
+                    reasoning="Unable to reach decision due to timeout or error. Defaulting to HOLD.",
+                    quantity=0,
+                    confidence=0.3,
+                ),
+                required=False,
+            ),
+            _chains["trading_decision"],
+            {
+                "ticker": ticker,
+                "news_summary": news_summary,
+                "chart_summary": chart_summary,
+                "portfolio_context": portfolio_context,
+                "actions_today": actions_today,
+                "max_actions": max_actions,
+            },
+        ),
+    ]
 
-        return {
-            "news_summary": news_summary,
-            "chart_summary": chart_summary,
-            "decision": result.decision,
-            "quantity": result.quantity,
-            "reasoning": result.reasoning,
-        }
-    except Exception as e:
-        print(f"[ANALYZE] ❌ Unexpected error in analyze node: {e}")
-        # Return safe defaults
-        return {
-            "news_summary": "Error in analysis",
-            "chart_summary": "Error in analysis",
-            "decision": "hold",
-            "quantity": 0,
-            "reasoning": "Analysis failed, defaulting to HOLD",
-        }
+    decision_result = _orchestrator.execute_sequential(decision_chains)
+    result = decision_result["decision"]
+
+    print(f"[ANALYZE] Decision: {result.decision} (confidence: {result.confidence:.2f})")
+
+    return {
+        "news_summary": news_summary,
+        "chart_summary": chart_summary,
+        "decision": result.decision,
+        "quantity": result.quantity,
+        "reasoning": result.reasoning,
+    }

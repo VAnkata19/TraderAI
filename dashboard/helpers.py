@@ -32,6 +32,7 @@ from dashboard.utils.data import (
     search_yahoo_tickers,
     get_ticker_data,
     get_ticker_info,
+    clear_data_cache,
 )
 
 from dashboard.utils.charts import (
@@ -82,6 +83,7 @@ __all__ = [
     "search_yahoo_tickers",
     "get_ticker_data",
     "get_ticker_info",
+    "clear_data_cache",
     
     # Charts
     "create_candlestick_chart",

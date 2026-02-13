@@ -16,7 +16,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from core.alpaca_broker import (
+from core.alpaca import (
     get_account,
     get_positions,
     get_position,

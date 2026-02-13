@@ -7,11 +7,10 @@ from datetime import datetime, timezone, time
 from typing import List
 
 import pandas as pd
-import yfinance as yf
 from langchain_core.documents import Document
 
-from config import CHART_PERIOD, CHART_INTERVAL, USE_ALPACA_DATA, USE_ALPACA_HISTORICAL
-from core.alpaca_broker import get_historical_bars_alpaca
+from config import CHART_PERIOD, CHART_INTERVAL
+from core.providers import get_provider
 
 
 def get_market_status(latest_timestamp) -> str:
@@ -48,33 +47,17 @@ def fetch_chart_for_ticker(ticker: str) -> List[Document]:
     If the raw DataFrame has more than ``MAX_CANDLES`` rows, we
     down-sample evenly so we never generate an excessive number of
     embedding requests.
-    
-    Uses Alpaca API by default, falls back to yfinance if unavailable.
+
+    Uses configured provider chain (Alpaca → yfinance with automatic fallback).
     """
     MAX_CANDLES = 50
 
-    # Try Alpaca first if enabled, fallback to yfinance
-    if USE_ALPACA_DATA and USE_ALPACA_HISTORICAL:
-        try:
-            print(f"[CHART] Fetching {ticker} data from Alpaca...")
-            df = get_historical_bars_alpaca(ticker, CHART_PERIOD, CHART_INTERVAL)
-            data_source = "Alpaca"
-        except Exception as e:
-            print(f"[CHART] Alpaca fetch failed for {ticker}: {e}")
-            print(f"[CHART] Falling back to yfinance...")
-            tk = yf.Ticker(ticker)
-            # Include pre-market and after-hours data for most current information  
-            df = tk.history(period=CHART_PERIOD, interval=CHART_INTERVAL, prepost=True)
-            data_source = "yfinance (fallback)"
-    else:
-        if USE_ALPACA_DATA:
-            print(f"[CHART] Using yfinance for {ticker} (Alpaca historical disabled - use free plan)")
-        else:
-            print(f"[CHART] Using yfinance for {ticker} (Alpaca disabled in config)")
-        tk = yf.Ticker(ticker)
-        # Include pre-market and after-hours data for most current information
-        df = tk.history(period=CHART_PERIOD, interval=CHART_INTERVAL, prepost=True)
-        data_source = "yfinance"
+    # Use unified provider pattern with automatic fallback
+    provider = get_provider()
+    print(f"[CHART] Fetching {ticker} data using {provider.get_name()}...")
+
+    df = provider.get_historical_bars(ticker, CHART_PERIOD, CHART_INTERVAL)
+    data_source = provider.get_name()
 
     if df.empty:
         print(f"[CHART] No data returned for {ticker}")
