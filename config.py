@@ -30,10 +30,7 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 MAX_ACTIONS_PER_DAY = int(os.getenv("MAX_ACTIONS_PER_DAY", "5"))
 RUN_INTERVAL_SECONDS = int(os.getenv("RUN_INTERVAL_SECONDS", "300"))  # 5 minutes
 
-# ── Tickers & RSS feeds ─────────────────────────────────────────────────────
-# Comma-separated list of stock tickers to track
-TICKERS = [t.strip() for t in os.getenv("TICKERS", "AAPL,MSFT,GOOGL").split(",")]
-
+# ── RSS feeds per ticker ────────────────────────────────────────────────────
 # RSS feeds per ticker – override via env or extend in code
 # Format: {"AAPL": ["https://...rss1", "https://...rss2"], ...}
 DEFAULT_RSS_FEEDS: dict[str, list[str]] = {

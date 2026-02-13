@@ -4,7 +4,6 @@ Page: Stocks — real-time stock monitoring with looping analysis.
 
 import streamlit as st
 
-from config import MAX_ACTIONS_PER_DAY
 from dashboard.helpers import (
     get_all_tickers,
     get_ticker_data,
@@ -14,7 +13,7 @@ from dashboard.helpers import (
     stop_analysis_loop,
     get_time_until_next_run,
     search_yahoo_tickers,
-    save_custom_tickers,
+    save_tickers,
     create_mini_price_chart,
     clear_data_cache,
 )
@@ -104,19 +103,21 @@ with col_add:
                         type=btn_type,
                     ):
                         if is_added:
-                            if chosen_symbol in st.session_state.custom_tickers:
-                                st.session_state.custom_tickers.remove(
+                            # Remove ticker
+                            if chosen_symbol in st.session_state.tickers:
+                                st.session_state.tickers.remove(
                                     chosen_symbol
                                 )
-                                save_custom_tickers(
-                                    st.session_state.custom_tickers
+                                save_tickers(
+                                    st.session_state.tickers
                                 )
                         else:
-                            st.session_state.custom_tickers.append(
+                            # Add ticker
+                            st.session_state.tickers.append(
                                 chosen_symbol
                             )
-                            save_custom_tickers(
-                                st.session_state.custom_tickers
+                            save_tickers(
+                                st.session_state.tickers
                             )
                             # Auto-fetch and ingest news for the new ticker
                             with st.spinner(f"Fetching news for {chosen_symbol}…"):
@@ -138,7 +139,9 @@ for ticker in all_tickers:
         with col_info:
             st.markdown(f"### {ticker}", help=None)
             actions_used = st.session_state.actions_today.get(ticker, 0)
-            st.markdown(f"**Budget:** {actions_used}/{MAX_ACTIONS_PER_DAY}")
+            max_actions = st.session_state.get('max_actions_per_day', 5)
+            max_actions_display = "∞" if max_actions == -1 else str(max_actions)
+            st.markdown(f"**Budget:** {actions_used}/{max_actions_display}")
 
             latest = get_latest_decision_for_ticker(ticker)
             if latest:

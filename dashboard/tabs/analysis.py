@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 import streamlit as st
 
-from config import MAX_ACTIONS_PER_DAY, OPENAI_API_KEY
+from config import OPENAI_API_KEY
 from dashboard.helpers import save_actions_today, save_decisions
 from typing import cast
 from graph.graph import GraphState
@@ -50,7 +50,7 @@ with col_right:
         selected_ticker, 0
     )
     st.caption(
-        f"Budget: {_ticker_actions} / {MAX_ACTIONS_PER_DAY} for {selected_ticker}"
+        f"Budget: {_ticker_actions} / {st.session_state.get('max_actions_per_day', 5)} for {selected_ticker}"
     )
 
 if run_btn:
@@ -128,7 +128,7 @@ if run_btn:
                             "decision": "",
                             "reasoning": "",
                             "actions_today": _current_actions,
-                            "max_actions": MAX_ACTIONS_PER_DAY,
+                            "max_actions": st.session_state.get('max_actions_per_day', 5),
                             "executed": False,
                             "order_result": "",
                         })
@@ -172,7 +172,7 @@ if run_btn:
         with m3:
             st.metric(
                 "Actions Today",
-                f"{result['actions_today']} / {MAX_ACTIONS_PER_DAY}",
+                f"{result['actions_today']} / {st.session_state.get('max_actions_per_day', 5)}",
             )
 
         with st.expander("📝 Reasoning", expanded=True):

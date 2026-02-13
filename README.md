@@ -96,10 +96,12 @@ ALPACA_SECRET_KEY=your_alpaca_secret       # Paper trading
 ALPACA_BASE_URL=https://paper-api.alpaca.markets
 ALPACA_ORDER_QTY=1                         # Shares per trade
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
-TICKERS=AAPL,MSFT,NVDA
 MAX_ACTIONS_PER_DAY=5
 RUN_INTERVAL_SECONDS=300
 LLM_MODEL=gpt-4o
+```
+
+> **Note**: Tickers are now managed through the dashboard UI and stored in `data/tickers.json` instead of the environment file.
 ```
 
 ### 2. Install & Run
@@ -181,7 +183,7 @@ trader_agent/
 - **Background loops:** Module-level threading (survives Streamlit reruns)
 - **Session persistence:** `.actions_today.json` tracks daily budget across sessions
 - **Decision history:** `.decisions.json` stores all past trades
-- **Custom tickers:** `.custom_tickers.json` persists user-added symbols
+- **Tickers:** `data/tickers.json` stores all tracked symbols (managed via dashboard)
 
 ## 📊 Data Management
 

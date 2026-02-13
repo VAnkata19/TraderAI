@@ -8,7 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from config import MAX_ACTIONS_PER_DAY, LLM_MODEL, RUN_INTERVAL_SECONDS
+from config import LLM_MODEL, RUN_INTERVAL_SECONDS
 from dashboard.helpers import (
     get_all_tickers,
     get_ticker_info,

@@ -10,25 +10,25 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parent.parent.parent  # Go up to project root
 _DATA_DIR = _ROOT / "data"
 _DATA_DIR.mkdir(exist_ok=True)
-_CUSTOM_TICKERS_FILE = _DATA_DIR / "custom_tickers.json"
+_TICKERS_FILE = _DATA_DIR / "tickers.json"
 _DECISIONS_FILE = _DATA_DIR / "decisions.json"
 _ACTIONS_TODAY_FILE = _DATA_DIR / "actions_today.json"
 
 
-def load_custom_tickers() -> list[str]:
-    """Load custom tickers from persistent storage."""
-    if _CUSTOM_TICKERS_FILE.exists():
+def load_tickers() -> list[str]:
+    """Load all tickers from persistent storage."""
+    if _TICKERS_FILE.exists():
         try:
-            with open(_CUSTOM_TICKERS_FILE, "r") as f:
+            with open(_TICKERS_FILE, "r") as f:
                 return json.load(f)
         except Exception:
             pass
     return []
 
 
-def save_custom_tickers(tickers: list[str]) -> None:
-    """Save custom tickers to persistent storage."""
-    with open(_CUSTOM_TICKERS_FILE, "w") as f:
+def save_tickers(tickers: list[str]) -> None:
+    """Save all tickers to persistent storage."""
+    with open(_TICKERS_FILE, "w") as f:
         json.dump(tickers, f)
 
 

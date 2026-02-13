@@ -22,12 +22,11 @@ from datetime import datetime, timezone
 from config import (
     MAX_ACTIONS_PER_DAY,
     RUN_INTERVAL_SECONDS,
-    TICKERS,
 )
 from core.rss_fetcher import fetch_news_for_ticker
 from core.chart_fetcher import fetch_chart_for_ticker
 from core.ingestion import ingest_news, ingest_chart
-from dashboard.helpers import load_actions_today, save_actions_today
+from dashboard.helpers import load_actions_today, save_actions_today, load_tickers
 from graph.graph import app
 
 
@@ -81,8 +80,9 @@ def run_cycle(tickers: list[str], actions_today: dict[str, int]) -> dict[str, in
 
 
 def main() -> None:
+    tickers = load_tickers()  # Load tickers from file
     print("🚀 Trading Agent started")
-    print(f"   Tickers: {', '.join(TICKERS)}")
+    print(f"   Tickers: {', '.join(tickers)}")
     print(f"   Max actions/day/stock: {'unlimited' if MAX_ACTIONS_PER_DAY == -1 else MAX_ACTIONS_PER_DAY}")
     print(f"   Run interval: {RUN_INTERVAL_SECONDS}s")
     print()
@@ -98,7 +98,7 @@ def main() -> None:
         print(f"\n⏰ Cycle start: {now.isoformat()}")
 
         try:
-            actions_today = run_cycle(TICKERS, actions_today)
+            actions_today = run_cycle(tickers, actions_today)
             save_actions_today(actions_today)
         except Exception as exc:
             print(f"❌ Cycle failed: {exc}")

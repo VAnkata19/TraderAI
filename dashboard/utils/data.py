@@ -4,17 +4,15 @@ Data fetching and ticker management utilities using provider chains.
 
 import pandas as pd
 import streamlit as st
-from config import TICKERS
-from dashboard.utils.storage import load_custom_tickers
+from dashboard.utils.storage import load_tickers
 from core.providers.chains import get_historical_bars_chain, get_ticker_info_chain
 from core.alpaca import clear_alpaca_cache
 
 
 def get_all_tickers() -> list[str]:
-    """Get all tickers: configured + custom ones."""
-    custom = load_custom_tickers()
-    all_tickers = list(TICKERS) + custom
-    return sorted(set(all_tickers))  # Remove duplicates and sort
+    """Get all tickers from persistent storage."""
+    tickers = load_tickers() 
+    return sorted(set(tickers))  # Remove duplicates and sort
 
 
 def search_yahoo_tickers(query: str) -> list[dict]:

@@ -4,7 +4,8 @@ Session state management and initialization for the dashboard.
 
 import streamlit as st
 from datetime import datetime, timezone
-from dashboard.utils.storage import load_actions_today, load_decisions, load_custom_tickers, save_actions_today
+from dashboard.utils.storage import load_actions_today, load_decisions, load_tickers, save_actions_today
+from config import MAX_ACTIONS_PER_DAY
 
 
 def init_session_state() -> None:
@@ -30,9 +31,9 @@ def init_session_state() -> None:
     if "current_day" not in st.session_state:
         st.session_state.current_day = datetime.now(timezone.utc).date()
     
-    # ── Custom tickers management ───────────────────────────────────────
-    if "custom_tickers" not in st.session_state:
-        st.session_state.custom_tickers = load_custom_tickers()
+    # ── Tickers management ──────────────────────────────────────────────
+    if "tickers" not in st.session_state:
+        st.session_state.tickers = load_tickers()
     
     # ── Selected ticker for detail pages ───────────────────────────────
     if "selected_ticker" not in st.session_state:
@@ -41,6 +42,10 @@ def init_session_state() -> None:
     # ── Configuration state ─────────────────────────────────────────────
     if "config_initialized" not in st.session_state:
         st.session_state.config_initialized = True
+    
+    # ── Max actions per day setting ─────────────────────────────────────
+    if "max_actions_per_day" not in st.session_state:
+        st.session_state.max_actions_per_day = MAX_ACTIONS_PER_DAY
 
     # ── Reset counters at midnight UTC ──────────────────────────────────
     now = datetime.now(timezone.utc)

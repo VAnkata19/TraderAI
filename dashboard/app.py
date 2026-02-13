@@ -18,7 +18,6 @@ if str(_ROOT) not in sys.path:
 import streamlit as st
 
 from config import (
-    TICKERS,
     MAX_ACTIONS_PER_DAY,
     RUN_INTERVAL_SECONDS,
     LLM_MODEL,
@@ -31,7 +30,7 @@ from dashboard.helpers import (
     init_session_state,
     get_all_tickers,
     search_yahoo_tickers,
-    save_custom_tickers,
+    save_tickers,
     is_openai_valid,
     is_discord_valid,
     estimate_cost_per_cycle,
@@ -153,6 +152,29 @@ with st.sidebar:
             key="config_chart_interval"
         )
         
+        # Max Actions Per Day
+        max_actions_help = "Maximum trading actions per day per ticker. Use 0 for unlimited actions."
+        if MAX_ACTIONS_PER_DAY == -1:
+            default_max_actions = 0  # Display 0 for unlimited in UI
+        else:
+            default_max_actions = MAX_ACTIONS_PER_DAY
+            
+        selected_max_actions = st.number_input(
+            "Max Actions/Day",
+            min_value=0,
+            max_value=100,
+            value=default_max_actions,
+            step=1,
+            key="config_max_actions",
+            help=max_actions_help
+        )
+        
+        # Convert 0 back to -1 for unlimited
+        actual_max_actions = -1 if selected_max_actions == 0 else selected_max_actions
+        
+        # Store in session state for use by other tabs
+        st.session_state.max_actions_per_day = actual_max_actions
+        
         # Timezone Selection
         timezone_options = [
             "US/Eastern",     # EST/EDT
@@ -204,7 +226,16 @@ with st.sidebar:
         # Dynamic cost calculations - use the current widget values directly
         cost_per_cycle = estimate_cost_per_cycle(selected_model)
         cycles_per_day = (24 * 60 * 60) / selected_interval
-        cost_per_day = cost_per_cycle * cycles_per_day
+        base_cost_per_day = cost_per_cycle * cycles_per_day
+        
+        # Calculate cost considering max actions limit
+        if actual_max_actions == -1:
+            actions_note = "unlimited"
+            estimated_daily_cost = base_cost_per_day
+        else:
+            actions_note = f"max {actual_max_actions}"
+            # Assume analysis runs for all cycles, but actions are limited
+            estimated_daily_cost = base_cost_per_day
         
         # Display calculated costs
         col1, col2 = st.columns(2)
@@ -217,8 +248,8 @@ with st.sidebar:
         with col2:
             st.metric(
                 "Cost per day", 
-                f"${cost_per_day/100:.2f}",
-                help="Estimated daily cost based on interval"
+                f"${estimated_daily_cost/100:.2f}",
+                help=f"Estimated daily cost ({actions_note} actions per ticker)"
             )
 
 

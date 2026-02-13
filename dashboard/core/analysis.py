@@ -5,8 +5,17 @@ Trading analysis loop management.
 import threading
 import streamlit as st
 from datetime import datetime, timezone
-from config import MAX_ACTIONS_PER_DAY, RUN_INTERVAL_SECONDS
+from config import RUN_INTERVAL_SECONDS, MAX_ACTIONS_PER_DAY
 from dashboard.utils.storage import load_actions_today, save_actions_today
+
+
+def get_max_actions() -> int:
+    """Get max actions from session state or fallback to config."""
+    try:
+        return st.session_state.get('max_actions_per_day', MAX_ACTIONS_PER_DAY)
+    except Exception:
+        # Fallback if session state not available (background threads)
+        return MAX_ACTIONS_PER_DAY
 
 # Track last run times for each ticker
 _last_run_times = {}
@@ -25,9 +34,10 @@ def _run_analysis_loop(ticker: str, stop_flag: threading.Event) -> None:
             # Check if we've hit the daily action limit
             actions_today = load_actions_today()
             ticker_actions = actions_today.get(ticker, 0)
+            max_actions = get_max_actions()
             
-            if ticker_actions >= MAX_ACTIONS_PER_DAY:
-                print(f"[ANALYSIS] {ticker} hit daily limit ({ticker_actions}/{MAX_ACTIONS_PER_DAY})")
+            if max_actions != -1 and ticker_actions >= max_actions:
+                print(f"[ANALYSIS] {ticker} hit daily limit ({ticker_actions}/{max_actions})")
                 stop_flag.wait(300)  # Wait 5 minutes before checking again
                 continue
             
@@ -49,7 +59,7 @@ def _run_analysis_loop(ticker: str, stop_flag: threading.Event) -> None:
                 "quantity": 0,
                 "reasoning": "",
                 "actions_today": ticker_actions,
-                "max_actions": MAX_ACTIONS_PER_DAY,
+                "max_actions": get_max_actions(),
                 "executed": False,
                 "order_result": "",
             }

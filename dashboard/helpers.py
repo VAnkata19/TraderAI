@@ -14,8 +14,8 @@ from dashboard.utils.models import (
 )
 
 from dashboard.utils.storage import (
-    load_custom_tickers,
-    save_custom_tickers,
+    load_tickers,
+    save_tickers,
     load_decisions,
     save_decisions,
     load_actions_today,
@@ -64,8 +64,8 @@ __all__ = [
     "estimate_cost_per_day",
     
     # Storage
-    "load_custom_tickers",
-    "save_custom_tickers",
+    "load_tickers",
+    "save_tickers",
     "load_decisions",
     "save_decisions", 
     "load_actions_today",
