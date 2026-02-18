@@ -1,17 +1,30 @@
 # TraderAI
 
-**LLM-powered stock trading agent** with real-time analysis and Discord notifications.
+**TraderAI is an autonomous stock trading agent that thinks like an analyst and acts like a trader.** It continuously monitors the market, reads the news, analyzes price action, and makes structured BUY / SELL / HOLD decisions — all powered by GPT-4o and executed in real time via Alpaca paper trading. No manual intervention required: just point it at a ticker, and it runs a full research-to-execution pipeline every 5 minutes.
 
 Built with **LangGraph**, **LangChain**, **ChromaDB**, **OpenAI**, and a **Streamlit dashboard**.
 
-## 📹 Demo Video
+## Overview
+
+| Capability | Detail |
+|---|---|
+| **Autonomous analysis** | Runs a 5-node LangGraph pipeline every 5 minutes per ticker |
+| **News intelligence** | Fetches and embeds live news via Tavily API with RSS fallback |
+| **Technical analysis** | Ingests OHLCV candle data into a vector store for LLM retrieval |
+| **Structured decisions** | Three parallel LLM chains produce a typed `TradingDecision` with confidence score |
+| **Paper trading** | Places real market orders via Alpaca (paper mode by default) |
+| **Budget guardrails** | Max 5 actions/stock/day; any excess quietly downgrades to HOLD |
+| **Dashboard** | Streamlit UI with live price cards, charts, decision history, and per-ticker Start/Stop |
+| **Notifications** | Discord webhook alerts on every executed trade |
+
+## Demo Video
 
 Check out how TraderAI works in action:
 
 [![TraderAI Demo]](https://github.com/user-attachments/assets/33544a91-c85f-4746-9c5c-1d797dff7172)
 
 
-## 🎯 How It Works
+## How It Works
 
 ```
 Background Loop (every 5 minutes per ticker):
