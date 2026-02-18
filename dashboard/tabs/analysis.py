@@ -29,6 +29,75 @@ selected_ticker = st.session_state.selected_ticker
 st.markdown("## Single-Ticker Analysis")
 st.header(f"{selected_ticker}")
 
+# ── Check for historical decision view ───────────────────────────────────────
+if "historical_decision" in st.session_state and st.session_state.historical_decision:
+    hist = st.session_state.historical_decision
+    
+    # Display banner indicating this is historical data
+    st.info("📋 Viewing historical analysis.")
+    
+    # Parse timestamp
+    ts = hist.get("timestamp", "")
+    if isinstance(ts, datetime):
+        time_display = ts.strftime("%Y-%m-%d %H:%M:%S UTC")
+    else:
+        try:
+            time_display = str(ts)[:19]
+        except Exception:
+            time_display = "Unknown"
+    
+    st.caption(f"Analysis performed at: {time_display}")
+    st.divider()
+    
+    # Display decision and metrics
+    decision = hist.get("decision", "HOLD").upper()
+    
+    # Set color based on decision
+    if decision == "BUY":
+        decision_color = "#00ff00"  # Green
+    elif decision == "SELL":
+        decision_color = "#ff4444"  # Red
+    else:  # HOLD
+        decision_color = "#ffaa00"  # Orange
+
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        # Create metric-like display with colored decision
+        st.markdown(f"""
+        <div style="padding: 0.5rem 0; display: flex; flex-direction: column; gap: 0.25rem;">
+            <div style="font-size: 0.875rem; font-weight: 400; color: rgba(250, 250, 250, 0.6);">Decision</div>
+            <div style="font-size: 2.25rem; font-weight: 600; color: {decision_color}; line-height: 1.2;">{decision}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with m2:
+        st.metric("Executed", "Yes ✓" if hist.get("executed") else "No")
+    with m3:
+        actions_at_time = hist.get("actions_today", 0)
+        st.metric("Actions at time", str(actions_at_time))
+
+    with st.expander("📝 Reasoning", expanded=True):
+        st.write(hist.get("reasoning", "N/A"))
+
+    with st.expander("News Summary"):
+        st.write(hist.get("news_summary", "N/A"))
+
+    with st.expander("Chart Summary"):
+        st.write(hist.get("chart_summary", "N/A"))
+
+    if hist.get("portfolio_context"):
+        with st.expander("Portfolio Context"):
+            st.write(hist.get("portfolio_context", "N/A"))
+
+    if hist.get("order_result"):
+        with st.expander("Order Result"):
+            st.write(hist.get("order_result", "N/A"))
+    
+    st.divider()
+    
+    st.stop()
+
+# ── Normal analysis flow ─────────────────────────────────────────────────────
+
 if not OPENAI_API_KEY:
     st.error(
         "⚠️ OpenAI API key not configured. "
@@ -206,8 +275,13 @@ if run_btn:
                 "timestamp": datetime.now(timezone.utc),
                 "ticker": selected_ticker,
                 "decision": decision,
-                "reasoning": (result["reasoning"][:120] + "…") if len(result["reasoning"]) > 120 else result["reasoning"],
+                "reasoning": result["reasoning"],
+                "news_summary": result.get("news_summary", ""),
+                "chart_summary": result.get("chart_summary", ""),
+                "portfolio_context": result.get("portfolio_context", ""),
                 "executed": result["executed"],
+                "order_result": result.get("order_result", ""),
+                "actions_today": result.get("actions_today", 0),
             },
         )
         save_decisions(st.session_state.decisions)

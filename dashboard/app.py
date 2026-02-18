@@ -79,6 +79,7 @@ st.session_state._page_charts = _charts_page
 pages = [
     st.Page(str(_TABS_DIR / "dashboard.py"), title="Dashboard", url_path="dashboard", default=True),
     st.Page(str(_TABS_DIR / "stocks.py"), title="Stocks", url_path="stocks"),
+    st.Page(str(_TABS_DIR / "decisions.py"), title="Decisions", url_path="decisions"),
     st.Page(str(_TABS_DIR / "transactions.py"), title="Transactions", url_path="transactions"),
     _analysis_page,
     _news_page,
